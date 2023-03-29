@@ -1,0 +1,362 @@
+
+QGis Geoprocessing
+==================
+
+Przetwarzanie danych z wykorzystanime API QGis jest w zasadzie
+ograniczone jedynie do danych wektorowych, w przypadku danych rastrowych
+jesteśmy ograniczeni jedynie do operacji na całych zbiorach danych
+takich jak kalkulator rastrów czy operacje przygotowywanie map. Wynika
+to z faktu że Python jest zbyt powolnym narzędziem do przetwarzania
+danych rastrowych i z tego powodu autorzy nie zdecydowali się na
+opracowanie API dla rastrów.
+
+W tej części zostaną omówione, przykłady wykorzystujące API QGis to
+geoprzetwarzania: dla danych punktowych, liniowych i poligonu,współpracy
+z rastrem oraz tworzenia map.
+
+Losowe punkty wzdłuż linii
+--------------------------
+
+Celem skryptu jest wygenerowanie zestawu punktów losowych, które zostaną
+rozłożone wzdłuż linii w odległości mniejszej niż zadany bufor. W
+zadaniu pomijamy sprawdzanie ile jest linii w warstwie wejściowej.
+Zakładamy, że jedna. Pomijamy odczyt i zapis plików z dysku, pobieramy
+dane z obszaru roboczego i wynik umieszczamy też w obszarze roboczym.
+Atrybutami tworzonego upnktu jest jego ID i odłegłość. Zapisujemy ID dla
+każdego losowanego punktu, a więc sekwencja nie będzie ciągła.
+
+Zadanie ma jeden: jak generować punkty losowe względem nieregularnego
+kształtu? Zadanie takie realizuje się zwykle generując pojedyncze punkty
+i testując czy spełnia kryterium odległości względem obiektu. Jeżeli
+spełnia, punkt się pozostawia, jeżeli nie pomija, generując następny.
+Oznacza to, że liczba generowanych punktów nie jest z góry określona.
+Aby ograniczyć liczbę generowanych punktów należy wskazać pewien obszar
+prostokątny , poza którym generowanie punktu nie ma sensu. Takim
+obszarem jest prostokąt otaczający nasz nieregularny kształt $
+:raw-latex:`\pm `$ bufor. Odległość pomiędzy geometriami będzie
+wyliczana przy pomocy metody distance (pochodzącej z GEOS)
+
+W celu realizacji skryptu należy:
+
+1. Pobrać linię z obszaru roboczego
+2. Pobrać jej zasięg
+3. Wyznaczyć na podstawie zasięgu min i max możliwe wartości dla x i y
+4. Pobrać geometrię linii, uwaga musi to być unikalna nazwa, zarówno dla
+   feature jak i geometrii
+5. Pętle wykonujemy aż uzyskamy oczekiwaną liczbę plików (npoints)
+6. Tworzymy parę losowych wartości x,y i zamieniamy w QGisGeometry
+7. Obliczamy odległość
+8. Jeżeli mniejsza niż krytyczna tworzymy feature, dodajemy gemoterię
+   aktualny ID iteracji i dodajemy do listy features.
+9. Dodajemy warstwę do obszaru roboczego
+
+.. code:: python
+
+   import processing
+   import numpy as np
+   from PyQt4.QtCore import QVariant
+
+   layers = iface.legendInterface().layers() 
+   linia = layers[0] #1
+
+   extent = linia.extent() #2
+   epsg = linia.crs().authid()
+
+   maxdist = 100000 # założenia
+   npoints = 100
+   xmin = extent.xMinimum() - maxdist #3
+   xmax = extent.xMaximum() + maxdist
+   ymin = extent.yMinimum() - maxdist
+   ymax = extent.yMaximum() + maxdist
+
+   line_feature = linia.getFeatures().next() #4
+   linia_geom = line_feature.geometry() # wskaźniki!!!
+
+
+   features = []
+   id = 0
+   while len(features) < npoints: #5
+       x = np.random.uniform(xmin,xmax) #6
+       y = np.random.uniform(ymin,ymax)
+       point = QgsGeometry.fromPoint(QgsPoint(x,y))
+       distance = linia_geom.distance(point) #7
+       if distance < maxdist: #8
+           feature = QgsFeature()
+           feature.setGeometry(point,distance)
+           feature.setAttributes([id])
+           features.append(feature)
+       id+=1 # 
+
+   layerdef = 'Point?crs=epsg:2180&field=id:int&field=dist:float' #9
+   pointLayer = QgsVectorLayer(layerdef, 'nowePunkty' ,'memory')
+   pointLayer.dataProvider().addFeatures(features)
+   pointLayer.updateExtents()
+   QgsMapLayerRegistry.instance().addMapLayers([pointLayer]) #9
+
+Linie łączące punkty z dwóch warstw
+-----------------------------------
+
+Zadaniem tego skryptu jest utworzenie linii łączących punkty z jednej
+warstwy (liczniesze, source) z punktami z innej warstwy, które są
+najbliższe danemu punktowi (mało, targets). Przykładem mogą być punkty
+przypisania magazynów do sklepów. Dla każdego sklepu (dużo) jako jego
+magazyn wskazujemy najbliższą mu hurtownię (mało).
+
+Mechanizm wyszukiwania obiektów wymaga sprawdzenia dla każdego punktu z
+source odległości do wszystkich targets i wybranie tego który leży
+najbliżej. Do wykonania zadania zostaną wykorzystane dwie pętle:
+zewnętrzna będzie sprawdzać każdy punkt oraz wewnętrzna będzie sprawdzać
+odległość wybranego punktu do każdego target.
+
+Skrypt wykorzystuje tym razem uproszczone metody (processing) otwierania
+plików geoprzestrzennych (getObject) i zapisywania do pliku
+(VectorWriter).
+
+Skrypt działa następująco:
+
+1. Do prawidłowego działania wymagany jest typ danych punktowy i
+   zgodność georeferencji
+2. Lista pól przypisanych do linii: id source, id targer, długość linii
+   (distance)
+3. Tworzymy obiekt writer, do którego będziemy zapisywać poszczególne
+   linie, obiekt wymaga podania encoding i crs
+4. Pętla zewnętrzna, dla każdego source
+
+   1. Pobranie geometrii,
+   2. Ustawienie zmiennej pomocniczej przechowującej aktualną odległość
+      do najbliższego punktu na b. dużą wartość
+   3. Ustwienie wskaźnika do obiektu docelowego na None
+   4. Zresetowanie features z targets
+
+5. Pętla wewnętrzna, dla każdego target
+
+   1. pobranie geometrii
+   2. obliczenie odległości
+   3. Jeżeli mniejsza niż aktualna najkr. odległość to: (zawsze prawda
+      dla 1 target)
+
+      4. Przypisz current_target
+      5. Zmodyfikuj (skróć odlełgość)
+
+6. Pętla zewnętrzna: Utwórz geomterię linii, jest jakiś target
+7. utrwórz feature
+8. Dodaj feature do writer. Tylko jedna feature do writer nie można
+   dodać listy features.
+9. Po zakończeniu pętli zamknij writer i dodaj warstwę do obszaru
+   roboczego
+
+.. code:: python
+
+   import processing
+   source = processing.getObject("points.shp")
+   target = processing.getObject("hubs.shp")
+   if source.geometryType()!=QGis.Point or target.geometryType()!=QGis.Point: #1
+       exit
+   if source.crs().authid()!=target.crs().authid(): 
+       exit
+
+   encoding=source.dataProvider().encoding()
+   crs=layer.crs()
+   fields=[QgsField('srcid',QVariant.Int),QgsField('trgid',QVariant.Int),QgsField('length',QVariant.Double)] #2
+   writer=VectorWriter('conns.shp',encoding,fields,QGis.WKBLineString,crs) #3
+           
+   sources=source.getFeatures() 
+   for src in sources: #4
+       src_geom=src.geometry() #A
+       shortest_distance=1e20  #B
+       cur_trg=None #C
+       targets=target.getFeatures() #D
+       for trg in targets: #5
+           trg_geom=trg.geometry() #A
+           cur_distance=src_geom.distance(trg_geom) #B
+           if cur_distance<shortest_distance: #C
+               shortest_distance=cur_distance  #a
+               cur_trg=trg #b
+       line=QgsGeometry.fromPolyline([src.geometry().asPoint(),cur_trg.geometry().asPoint()]) linii #6
+       feature = QgsFeature() #7
+       feature.setGeometry(line) 
+       feature.setAttributes([src.id(),trg.id(),line.length()]) 
+       writer.addFeature(feature) #8
+
+   del writer #9
+   line_layer=processing.getObject("conns.shp") 
+   QgsMapLayerRegistry.instance().addMapLayers([line_layer])
+
+Poligon z punktów
+-----------------
+
+Zadanie, pomimo że krótkie jest dość trudne do zrozumienia i wymaga
+wcześniejszego zaproponownaia rozwiązania na poziomie własności
+geometrii. Celem zadania jest połączenie wszystkich punktów w poligon w
+taki sposób aby utworzyć zamkniętą powierzchnię. Utworzenie poligonu
+wymaga uporządkowania punktów po okręgu. Najprostrzym rozwiązaniem
+porządkującym jest uporządkowanie na podstawie kątów względem
+geometrycznego środka punktów.
+
+Skrypt działa w nastepujący sposób:
+
+1. po pobraniu features przekształaca je na numpy.array
+2. Wyznacza środek geomteryczny punktów jako średną wartość dla obu
+   kolumn wzdłuż zerowego wymiaru np.array
+3. Odejmuje środek od całej macierzy. Wspórzędne macierzy są tera
+   względne względem 0,0
+4. Obliczenie kątów (w radianach)
+5. Wyznaczenie porządku wg wartości kątów. (podobnie jak w R)
+6. utowrzenie listy punktów (par wsółrzędnych) uporządkowanych względem
+   wartości kątów ``points[order,:]``
+7. Utworzenie feature
+8. Utworzenie warsty
+9. Dodanie fature do warstwy i zakończenie edycji
+
+.. code:: python
+
+   import processing
+   import numpy as np
+   if source.geometryType()!=QGis.Point:
+       exit
+   encoding=source.dataProvider().encoding() 
+   crs=source.dataProvider().crs()
+
+   sources=source.getFeatures()
+   points=[src.geometry().asPoint() for src in sources]
+
+   points=np.array(points) #1
+   center=points.mean(0) #2
+   p=points-center #3
+   atans=np.arctan2(p[:,0],p[:,1]) #4
+   order=np.argsort(atans) #5
+
+   ring=[QgsPoint(*p) for p in points[order,:]] #6
+   polygon=QgsFeature() #7
+   polygon.setGeometry(QgsGeometry.fromPolygon([ring]))
+   polygon.setAttributes([0])
+       
+   fields=[QgsField('id',QVariant.Int)]
+   writer=processing.VectorWriter('polygon.shp',encoding,fields,QGis.WKBPolygon,crs)
+   writer.addFeature(polygon) #9
+   del writer
+   poly_layer=processing.getObject('polygon.shp') 
+   QgsMapLayerRegistry.instance().addMapLayers([poly_layer])
+
+Próbkowanie rastra
+------------------
+
+W powyższym przykładzie nie sprawdzamy, zgodności crs i zasięgu zostało
+to już omówione w poprzednich przykładach. Celem skryptu jest
+opróbowanie rastra w miejscu występowania punktów. Próbkowanie odbywa
+się bez konieczności przeliczania wspórzędnych punktu na wiersz i
+komórkę rastra.
+
+Aby wykonać proste próbkowanie należy:
+
+1. Otworzyć dostęp do pliku wektorowego i rastrowego
+2. Dodać kolumnę i zaktualizwoać warstwę
+3. Określić index dodanego pola (1 - liczba pól w warstwie)
+4. Włączyć edycję warstwy
+5. Dla każdego punktu pobrać geometrię
+6. Użyć geoemtrii do pobrania wartości z rastra
+7. Zaktualizować nowo dodaną kolumnę wartością pobraną z rastra
+
+.. code:: python
+
+   from PyQt4.QtCore import QFileInfo
+
+   rastFile=os.path.join(path,"dem.tif") #1
+   pointFile=os.path.join(path,"points.shp")
+   layer=processing.getObject(vectFile) 
+   base=QFileInfo(rastFile).baseName()
+       
+   layer.dataProvider().addAttributes([QgsField(base,QVariant.Double)]) #2
+   layer.updateFields() 
+   fields=layer.pendingFields().toList() #3
+   last_field_id=len(fields)-1 
+
+   features=layer.getFeatures()
+   layer.startEditing()  #4
+   for feature in features: 
+       point=feature.geometry() #5
+       value=raster.dataProvider().identify(point,QgsRaster.IdentifyFormatValue)  #6
+       layer.changeAttributeValue(feature.id(),last_field_id,value) #7
+       layer.commitChanges()
+
+Tworzenie map
+-------------
+
+API QGIS pozwala również na wykonywanie operacji, których wynikiem są
+pliki graficzne zawierające efekt renderowania (tj. wizualizacji
+graficznej) danych geoprzestrzennych. W tym przykładzie użyjemy mapy
+rastrowej i punktów do przekształcenia danych rastrowych w zbiór mapek w
+formacie png powstałych dookoła miejsc wyznaczonych lokalizacją punktów
+
+Aby wykonać taką pracę należy
+
+1.  Otworzyć plik rastrowy i wektorowy
+2.  dodać pliki do obszaru roboczego i pobrać ich klucze
+    (identyfikatory)
+3.  Określić rozmiar obszaru w komórkach a następnie przeliczyć rozmiar
+    w komórkach na jennostki mapy. Podzielić przez 2, gdzyż punkt jest w
+    środku a zasięg wyznaczamy z każdej strony. Zakładamy że obszar
+    cięcia to kwadrat.
+4.  Definiujemy kolor tła i uruchamiamy obiekt QImage (Qt - nie QGIS),
+    który pozwoli zamienić warstwę geoprzestrzenną w plik graficzny.
+    Wybieramy ARGB32 - 32-bitowy plik RGB z kanałem Alpha
+5.  Wypełniamy tłem
+6.  Do wykonania grafiki tworzymy obiekt QPainter (również Qt).
+    Rozpoczynamy tworzenie obrazu
+7.  Ustawiamy własność renderingu na brak ulepszania, chodzi o to aby
+    nie rozmywać kategorii w sąsiednich polach)
+8.  Uruchamiamy renderer (tym razem QGis), który zajmie właściwym
+    procesem renderowania
+9.  Wskazujemy źródło danych i rozmiar obrazu
+10. Dla każdego punktu:
+
+    1. Pobieramy wspórzedne punktu jako środka obrazu
+    2. Dodajemy bufor z każdej strony - połowa wielkości obrazka
+    3. Rednerujemy
+    4. Tworzymy nazwę pliku na podstawie atrybutów danego punktu
+    5. Zapisujemy plik i przechodzimy do następnego na liście
+
+.. code:: python
+
+   from PyQt4.QtGui import *
+   from PyQt4.QtCore import *
+   import os
+   import processing
+
+   #path
+
+   output="output"
+   player=processing.getObject("punkt2.shp") #1
+   rlayer=processing.getObject("class.tif")
+
+   reg=QgsMapLayerRegistry.instance() #2
+   reg.addMapLayers([player,rlayer])
+   reg.mapLayers().keys()
+
+   size=64 #3
+   xs=rlayer.rasterUnitsPerPixelX()*size/2
+   ys=rlayer.rasterUnitsPerPixelY()*size/2
+
+   color=QColor(0,255,255) #4
+   img = QImage(QSize(size,size), QImage.Format_ARGB32_Premultiplied)
+   img.fill(color.rgb()) #5
+
+   p = QPainter() #6
+   p.begin(img)
+   p.setRenderHint(QPainter.NonCosmeticDefaultPen) #7
+
+   renderer=QgsMapRenderer() #8
+   renderer.setLayerSet(reg.mapLayers().keys()) #9
+   renderer.setOutputSize(img.size(),img.logicalDpiX())
+
+   points=player.getFeatures()
+   for point in points: #10
+       pt=point.geometry().asPoint() #A
+       ext=QgsRectangle(pt[0]-xs,pt[1]-ys,pt[0]+xs,pt[1]+ys) #B
+       renderer.setExtent(ext)
+       renderer.render(p) #C
+       outfile=output+"_"+str(point.id()).zfill(3)+".png" #D
+       #outfile=os.path.join(datapath,outfile)
+       img.save(outfile,"png") #E
+
+   p.end()

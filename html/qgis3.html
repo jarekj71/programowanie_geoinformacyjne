@@ -1,0 +1,332 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Skrypty geoprzetwarzania &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Samodzielnie budowany plugin - wersja minimum" href="qgis4.html" />
+    <link rel="prev" title="Analizy geoprzestrzenne w Qgis" href="qgis2.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis4.html" title="Samodzielnie budowany plugin - wersja minimum"
+             accesskey="N">dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="skrypty-geoprzetwarzania">
+<h1>Skrypty geoprzetwarzania<a class="headerlink" href="#skrypty-geoprzetwarzania" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>W znakomitej ilości przypadków rozwiązania programistyczne ograniczają się do pojedynczych algorytmów, które przyjmują jeden-dwa pliki wejściowe, kilka parametrów sterujących a zwracają pojedynczą warstwę geoprzestrzenną lub dane w innej, prostrzej formie. W takiej sytuacji, zamiast budować rozbudowaną wielo-plikową strukturę jaką jest plugin, warto rozważyć utworzenie skryptu lub kilku skryptów geoprzetwarzania. Takie podejście ma kilka dodatkowych zalet:</p>
+<ol class="arabic simple">
+<li>Skrypty geoprzetwarzania są prostą strukturą jedno-plikową</li>
+<li>Integrują się ze środowiskiem Qgis, i tym samym proste w rozpowszechnianiu</li>
+<li>Nie wymagają tworzenia interface graficznego, jest on budowany automatycznie po zdefiniowaniu parametrów</li>
+<li>Mogą być częścią modeli zbudowanych z kilku algorytmów</li>
+<li>Każdy algorytm może być użyty wielokrotnie do różnych rozwiązań</li>
+</ol>
+<div class="section" id="katalog-wtyczki">
+<h2>Katalog wtyczki<a class="headerlink" href="#katalog-wtyczki" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Wtyczki zasadniczo można umieszczać w dowolnym katalogu a następnie dodawać je do skryptów geoprzetwarzania, ale zdecydowanie najprościej trzymać je w domyślnym katalogu, gdzie takie skrypty są tworzone:</p>
+<dl class="docutils">
+<dt><strong>windows</strong></dt>
+<dd>C:UsersUSERAppDataRoamingQGISQGIS3profilesdefaultprocessingscripts</dd>
+<dt><strong>Linux</strong></dt>
+<dd>/home/USER/.local/share/QGIS/QGIS3/profiles/default/processing/scripts</dd>
+</dl>
+<p>Jeżeli pozyskujemy skrypty z zewnętrznych źródeł jest do domyślne miejsce do którego powinny być dodawane. Następnie należy je dodać przy pomocy przycisku <em>Add script to toolbox</em></p>
+</div>
+<div class="section" id="struktura-pliku-skryptu-elementy-wspolne">
+<h2>Struktura pliku skryptu - elementy wspólne<a class="headerlink" href="#struktura-pliku-skryptu-elementy-wspolne" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Aby utworzyć skrypt geoprzetwarzania integrujący się ze środowiskiem Qgis należy zaimportować QCoreApplication oraz QVariant, aby definiować pola baz danych. Natomiast z qgis.core można zaimprotować wszystkie klasy, lub też tylko te niezbędne, co w teorii powinno przyspieszyć ładowanie skryptu. Pozostałe biblioteki, jak processing czy numpy są ładowane jeżeli potrzebne są do obliczeń.</p>
+<ol class="arabic simple">
+<li>Klasa powinna mieć nazwę opisującą co algorytm ma robić. Klasa dziedziczy po <strong>QgsProcessingAlgorithm</strong></li>
+<li>Pierwszą funkcją standardową jest funkcja <strong>tr</strong>, która pozwala przygotować wielojęzyczne tłumaczenia dla skryptu. Nie jest obowiązkowa</li>
+<li>Utworzenie instancji obiektu. Funkcja zwraca obiekt klasy z której pochodzi</li>
+<li>Nazwa. Nazwa skryptu jedno słowo, unikalne</li>
+<li>Nazwa wyświetlana w toolbox</li>
+<li>Grupa w toolbox, najlepiej grupować skrypty w grupy o podobnych zadaniach lub będących składowymi większego projektu</li>
+<li>Unikalny identyfikator grupy</li>
+<li>Krótki, jednolinijkowy tekst pomocy</li>
+</ol>
+<p>Pierwsza część skrptu w zasadzie poza szczegółami właściwymi dla każdego skryptu jak nazwa czy zmienne skryptu będą takie same:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QCoreApplication</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+<span class="kn">from</span> <span class="nn">qgis.core</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="kn">import</span> <span class="nn">processing</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">class</span> <span class="nc">AddLineRandomPoints</span><span class="p">(</span><span class="n">QgsProcessingAlgorithm</span><span class="p">):</span> <span class="c1">#1</span>
+
+    <span class="n">INPUT</span> <span class="o">=</span> <span class="s1">&#39;INPUT&#39;</span> <span class="c1">#Domyślne nazwy zmiennych, tak będą wyświetlane w formatce</span>
+    <span class="n">OUTPUT</span> <span class="o">=</span> <span class="s1">&#39;OUTPUT&#39;</span>
+    <span class="n">MAXDIST</span> <span class="o">=</span> <span class="s1">&#39;MAXDIST&#39;</span>
+    <span class="n">NPOINTS</span> <span class="o">=</span> <span class="s1">&#39;NPOINTS&#39;</span>
+
+    <span class="k">def</span> <span class="nf">tr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span> <span class="c1">#2</span>
+        <span class="k">return</span> <span class="n">QCoreApplication</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="s1">&#39;Processing&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">createInstance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#3</span>
+        <span class="k">return</span> <span class="n">AddLineRandomPoints</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#4</span>
+        <span class="k">return</span> <span class="s1">&#39;randlinepoints&#39;</span>
+
+    <span class="k">def</span> <span class="nf">displayName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#5</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Random Points along line&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#6</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Teaching examples&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">groupId</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#7</span>
+        <span class="k">return</span> <span class="s1">&#39;rpltscripts&#39;</span>
+
+    <span class="k">def</span> <span class="nf">shortHelpString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#8</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s2">&quot;Returns point file randomly scattered along line&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-inicjujaca-algorytm">
+<h2>Funkcja inicjująca algorytm<a class="headerlink" href="#funkcja-inicjujaca-algorytm" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Kolejnym krokiem, który ma już wpływ na zachowanie skryptu, a konkretnie na komunikację z użytkownikiem ma funkcja <strong>initAlgorithm</strong>. Funkcja ta zawsze będzie wystepować pod tą samą nazwą. Planowany skrypt będzie miał cztery argumenty:</p>
+<ol class="arabic simple">
+<li>warstwę wejściową powinna to być linia</li>
+<li>Warstwę wyjściową, punktową</li>
+<li>Parametr liczbowy maxdistance określający w do jakiej maksymalnej odległości od linii nowe punkty mogą być generowane</li>
+<li>Parametr liczbowy npoints ile punktów zostanie utworzonych.</li>
+</ol>
+<p>Każdy z tych parametrów jest obsługiwany przez odpowiednią klasę z grupy QgsProcessingParameter… Każda klasa pozwala kontrolować typ danych wejściowych (na przykład warstaw geoprzestrzenna, wartość numeryczna), rodzaj danych geprzestrzennych (linia, raster), wartości domyśle, oraz nazwę wyświetlaną i krótki opis.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initAlgorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">addParameter</span><span class="p">(</span><span class="n">QgsProcessingParameterFeatureSource</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">INPUT</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Input layer&#39;</span><span class="p">),</span>
+            <span class="p">[</span><span class="n">QgsProcessing</span><span class="o">.</span><span class="n">TypeVectorLine</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">addParameter</span><span class="p">(</span><span class="n">QgsProcessingParameterNumber</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">MAXDIST</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Maximimum distance from line in layer units&#39;</span><span class="p">),</span>
+            <span class="n">defaultValue</span><span class="o">=</span><span class="mf">100.</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">addParameter</span><span class="p">(</span><span class="n">QgsProcessingParameterNumber</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">NPOINTS</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Number of points&#39;</span><span class="p">),</span>
+            <span class="n">defaultValue</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">addParameter</span><span class="p">(</span><span class="n">QgsProcessingParameterFeatureSink</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">OUTPUT</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tr</span><span class="p">(</span><span class="s1">&#39;Output layer&#39;</span><span class="p">))</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>Należy podkreślić, że wyjście określa się tu terminem sink, a więc miejsca do którego jest zbierany strumień danych.</p>
+<p>Po zbudowaniu interface wystarczy dodać pustą funkcję <strong>processAlgorithm</strong> …</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">processAlgorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">feedback</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<p>… i przetestować wygląd wtyczki. Interface wtyczki powinien wyglądać następująco:</p>
+<img alt="_images/geoprocess.png" class="align-center" src="_images/geoprocess.png" />
+</div>
+<div class="section" id="funkcja-pomocnicza-przetwarzajaca-dane-wejsciowe">
+<h2>Funkcja pomocnicza przetwarzająca dane wejściowe<a class="headerlink" href="#funkcja-pomocnicza-przetwarzajaca-dane-wejsciowe" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Poniższa funkcja nie jest obowiązkowa a jej nazwa nie jest częścią struktury wtyczki, ma jedynie na celu rozdzielenie procesu parsowania i weryfikacji danych wejściowych od właściwego algorytmu przetwarzania danych geoprzestrzennych. Zadania tej funkcji, to pobranie parametrów i konwersja do określonego typu danych. Każdy z typów danych omówiony jest w <a class="reference external" href="https://qgis.org/pyqgis/3.6/">systemie pomocy</a>. Lista typów jest znacznie szersza niż typów danych wejściowych. Na przykład pole interface akceptuje tylko typ numeryczny, ale może on być parsowany do typu integer, double itp.</p>
+<p>W przypadku warstw wejściowych należy sprawdzić czy wynik nie jest None, co oznacza że z jakiegoś powodu nie udało się otworzyć warstwy.</p>
+<p>W przypadku sink należy zdefiniować strukturę zbioru wyjściowego: listę pól, typ danych i crs. Funkcja tworząca warstwę wyjściową zwraca krotkę zawierającą obiekt oraz jego identyfikator służący do zapisu warstwy.</p>
+<p>Aby zweryfikowane parametry mogły być przekazywane pomiędzy funkcjami należy uczynić je publicznymi (self.)</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">processParameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameters</span><span class="p">,</span><span class="n">context</span><span class="p">,</span><span class="n">feedback</span><span class="p">):</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameterAsSource</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">INPUT</span><span class="p">,</span>
+        <span class="n">context</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">QgsProcessingException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidSourceError</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">INPUT</span><span class="p">))</span>
+
+    <span class="n">nfeatures</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">featureCount</span><span class="p">()</span>
+    <span class="c1">#feedback.pushInfo(&#39;NPOINTS is {}&#39;.format(nfeatures))</span>
+    <span class="k">if</span> <span class="n">nfeatures</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">QgsProcessingException</span><span class="p">(</span><span class="s1">&#39;Only one input line is currently allowed&#39;</span><span class="p">)</span>
+
+    <span class="c1">#create sink</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">QgsFields</span><span class="p">()</span>
+    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span>
+
+    <span class="p">(</span><span class="n">sink</span><span class="p">,</span> <span class="n">dest_id</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameterAsSink</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">OUTPUT</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">,</span>
+        <span class="n">fields</span><span class="p">,</span>
+        <span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Point</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">.</span><span class="n">sourceCrs</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Send some information to the user</span>
+    <span class="c1">#feedback.pushInfo(&#39;CRS is {}&#39;.format(source.sourceCrs().authid()))</span>
+
+    <span class="k">if</span> <span class="n">sink</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">QgsProcessingException</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidSinkError</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">OUTPUT</span><span class="p">))</span>
+
+    <span class="n">var_maxdist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameterAsDouble</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MAXDIST</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">)</span>
+
+    <span class="n">var_npoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameterAsInt</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NPOINTS</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">)</span>
+
+    <span class="c1">#make variable public</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">=</span> <span class="n">sink</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dest_id</span> <span class="o">=</span> <span class="n">dest_id</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span> <span class="o">=</span> <span class="n">var_maxdist</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span> <span class="o">=</span> <span class="n">var_npoints</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="glowna-funkcja-przetwarzajaca">
+<h2>Główna funkcja przetwarzająca<a class="headerlink" href="#glowna-funkcja-przetwarzajaca" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Główna funkcja przetwarzająca, podobnie jak funkcja inicjująca ma ustaloną odgórnie nazwę: <strong>processAlgorithm</strong>. Dzięki rozdzieleniu logiki skryptu na część sprawdzającą i przetwarzającą ta część może koncentrować się na samym algorytmie przetwarzającym. W takiej sytuacji trzeba wywołać utworzoną wcześniej funkcję <strong>processParameters()</strong> w celu przetworzenia parametrów wejściowych. Sama procedura generowania punktów wzdłóż linii została omówiona we wcześniejszej wersji kursu. <a class="reference internal" href="qgis2.html#random-points-label"><span class="std std-ref">Losowe punkty wzdłuż linii</span></a>.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">processAlgorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">feedback</span><span class="p">):</span>
+    <span class="c1">#prepare parameters</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">processParameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">feedback</span><span class="p">)</span>
+
+    <span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">sourceExtent</span><span class="p">()</span>
+    <span class="c1">#feedback.pushInfo(&#39;Extent is {}&#39;.format(extent))</span>
+    <span class="n">xmin</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">xMinimum</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span> <span class="c1">#3</span>
+    <span class="n">xmax</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">xMaximum</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span>
+    <span class="n">ymin</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">yMinimum</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span>
+    <span class="n">ymax</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">yMaximum</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span>
+
+    <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">line_geom</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span>
+
+    <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span><span class="p">)</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPointXY</span><span class="p">(</span><span class="n">QgsPointXY</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">line_geom</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">distance</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxdist</span><span class="p">:</span>
+            <span class="n">feature</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="nb">id</span><span class="p">,</span><span class="n">distance</span><span class="p">])</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+            <span class="nb">id</span><span class="o">+=</span><span class="mi">1</span> <span class="c1">#</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">sink</span><span class="o">.</span><span class="n">addFeatures</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">OUTPUT</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest_id</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Skrypty geoprzetwarzania</a><ul>
+<li><a class="reference internal" href="#katalog-wtyczki">Katalog wtyczki</a></li>
+<li><a class="reference internal" href="#struktura-pliku-skryptu-elementy-wspolne">Struktura pliku skryptu - elementy wspólne</a></li>
+<li><a class="reference internal" href="#funkcja-inicjujaca-algorytm">Funkcja inicjująca algorytm</a></li>
+<li><a class="reference internal" href="#funkcja-pomocnicza-przetwarzajaca-dane-wejsciowe">Funkcja pomocnicza przetwarzająca dane wejściowe</a></li>
+<li><a class="reference internal" href="#glowna-funkcja-przetwarzajaca">Główna funkcja przetwarzająca</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="qgis2.html"
+                        title="poprzedni rozdział">Analizy geoprzestrzenne w Qgis</a></p>
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis4.html"
+                        title="następny rozdział">Samodzielnie budowany plugin - wersja minimum</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis3.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis4.html" title="Samodzielnie budowany plugin - wersja minimum"
+             >dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

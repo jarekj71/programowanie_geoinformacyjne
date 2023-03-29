@@ -1,0 +1,541 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Podstawy przetwarzania danych w QGIS &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Analizy geoprzestrzenne w Qgis" href="qgis2.html" />
+    <link rel="prev" title="Programowanie geoinformacyjne 3" href="index.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             accesskey="N">dalej</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Programowanie geoinformacyjne 3"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="podstawy-przetwarzania-danych-w-qgis">
+<h1>Podstawy przetwarzania danych w QGIS<a class="headerlink" href="#podstawy-przetwarzania-danych-w-qgis" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>W zakresie przetwarzania danych QGIS posiada swoje własne API, które jest oparte na bezpośrednio na GDAL/OGR. Znajomość zasad przetwarzania danych przy pomocy tych narzędzi znacząco ułatwia tworzenie skryptów geoprzetwarzania i pluginów . W tej części zostaną omówione zasady odczytywania, tworzenia i zapisu plików wektorowych i rastrowych w przy pomocy API QGIS.</p>
+<div class="section" id="odczyt-pliku-wektorowego-z-dysku">
+<h2>Odczyt pliku wektorowego z dysku<a class="headerlink" href="#odczyt-pliku-wektorowego-z-dysku" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<div class="section" id="dostep-do-pliku">
+<h3>Dostęp do pliku<a class="headerlink" href="#dostep-do-pliku" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Aby otworzyć plik wektorowy, należy określić ścieżkę dostępu, najlepiej poprzez zmianę obszaru roboczego  do pliku a następnie,</p>
+<ol class="arabic simple">
+<li>przy pomocy funkcji QgsVectorLayer() otworzyć dostęp do pliku jako
+warstwa o nazwie punkty przez sterownik ogr</li>
+<li>Sprawdzić , czy jest to prawidłowa warstwa wektorowa</li>
+<li>Utworzyć referencję do aktywnego projektu, tu o nazwie <em>registry</em></li>
+<li>Dodać plik do obszaru roboczego</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="n">pointFile</span> <span class="o">=</span> <span class="s2">&quot;points.shp&quot;</span>
+<span class="n">pointLayer</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="n">pointFile</span><span class="p">,</span> <span class="s2">&quot;punkty&quot;</span><span class="p">,</span> <span class="s2">&quot;ogr&quot;</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">pointLayer</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span> <span class="c1">#2</span>
+
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span> <span class="c1">#3</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">pointLayer</span><span class="p">)</span> <span class="c1">#4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dostep-do-pliku-z-aktywnego-obszaru-roboczego">
+<h3>Dostęp do pliku z aktywnego obszaru roboczego<a class="headerlink" href="#dostep-do-pliku-z-aktywnego-obszaru-roboczego" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>W przypadku, gdy plik znajduje się w obszarze roboczym jako warstwa - na przykład wczytany przez użytkownika, warstwy tworzą listę w ramach obiektu <em>registry</em>. Jeżeli znamy numer indeksu warstwy, możemy ją wywołać poprzez ten indeks. Listę zarejestrowanych
+warstw uzyskamy za pomocą listy zasięgu:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span><span class="o">.</span><span class="n">mapLayers</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Jednakże, aby dodać wczytaną warstwę (lub więcej warstw) do obszaru
+roboczego należy wykonać zupełnie inne polecenie:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">pointLayer</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="odczyt-zawartosci-pliku">
+<h3>Odczyt zawartości pliku<a class="headerlink" href="#odczyt-zawartosci-pliku" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Pomimo, że możemy wyświetlić plik w obszarze roboczym QGIS, nie mamy bezpośredniego dostępu do jego zawartości. Dostęp do zawartości zostanie omówiony na przykładzie dwóch funkcji wyświetlającej zawartość pliku punktowego. Plik wektorowy składa się z obiektów features, każda feature składa się z identyfikatora, geometrii oraz atrybutów. Odczytując dane w pierwszej kolejności odczytujemy features, a następnie z każdej feature wydobywamy geometrię i atrybuty. Procedura ta niczym nie różni się od tej znanej z OGR.</p>
+<ol class="arabic simple">
+<li>Odwołanie do features z warstwy</li>
+<li>Pobór pierwszej features</li>
+<li>Wypisanie wszystkich pól i ich typów dla pierwszej features</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">show_point_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span> <span class="c1">#1</span>
+    <span class="n">feature</span><span class="o">=</span><span class="nb">next</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="c1">#2</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">feature</span><span class="o">.</span><span class="n">fields</span><span class="p">()</span><span class="o">.</span><span class="n">toList</span><span class="p">():</span> <span class="c1">#3</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;: &quot;</span><span class="o">+</span><span class="n">field</span><span class="o">.</span><span class="n">typeName</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">show_point_layer</span><span class="p">(</span><span class="n">pointLayer</span><span class="p">)</span>
+<span class="nb">id</span><span class="p">:</span> <span class="n">Integer</span>
+<span class="n">nazwa</span><span class="p">:</span> <span class="n">String</span>
+<span class="n">wartosc</span><span class="p">:</span> <span class="n">Real</span>
+<span class="n">dem</span><span class="p">:</span> <span class="n">Real</span>
+</pre></div>
+</div>
+<p>Druga funkcja wyświetla zawartość pliku w postaci identyfikatora, współrzędnych punktów oraz atrybutów tabeli</p>
+<ol class="arabic simple">
+<li>Zresetowanie features: jest to generator a nie lista</li>
+<li>Pobór ID, geometrii (jako obiektu), atrybutów (jako listy)</li>
+<li>Sprawdzenie zgodności typów: jeśli punkt, konwersja na krotkę (tuple) ze
+współrzędnymi</li>
+<li>Przekształcenie geometrii w krotkę</li>
+<li>Wypisanie sformatowanej listy.</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">show_point_layer_content</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">rewind</span><span class="p">()</span> <span class="c1">#1</span>
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">id</span><span class="p">()</span> <span class="c1">#2</span>
+        <span class="n">geom</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">attributes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">geom</span><span class="o">.</span><span class="n">wkbType</span><span class="p">()</span><span class="o">==</span><span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Point</span><span class="p">:</span> <span class="c1">#3</span>
+            <span class="n">punkt</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span><span class="n">geom</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()</span><span class="o">.</span><span class="n">y</span><span class="p">()</span> <span class="c1">#4</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ID: </span><span class="si">{}</span><span class="s2"> coords: </span><span class="si">{}</span><span class="s2"> attrs: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">punkt</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span> <span class="c1"># 5</span>
+</pre></div>
+</div>
+<p>show_point_layer_content(pointLayer)</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ID</span><span class="p">:</span> <span class="mi">0</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">460910</span><span class="p">,</span><span class="mi">615321</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Przechowo&#39;</span><span class="p">,</span> <span class="mf">680.0</span><span class="p">,</span> <span class="mf">24.588931613498264</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">1</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">458171</span><span class="p">,</span><span class="mi">619337</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Dulsk&#39;</span><span class="p">,</span> <span class="mf">440.0</span><span class="p">,</span> <span class="mf">33.24058956570096</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">2</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">456368</span><span class="p">,</span><span class="mi">627208</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Grodek&#39;</span><span class="p">,</span> <span class="mf">211.0</span><span class="p">,</span> <span class="mf">50.73646969265408</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">3</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">474986</span><span class="p">,</span><span class="mi">621520</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Marzy&#39;</span><span class="p">,</span> <span class="mf">361.0</span><span class="p">,</span> <span class="mf">21.615658654106987</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">4</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">474906</span><span class="p">,</span><span class="mi">623462</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Mniszek&#39;</span><span class="p">,</span> <span class="mf">17.0</span><span class="p">,</span> <span class="mf">37.90913645426432</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">5</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">469606</span><span class="p">,</span><span class="mi">617894</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Sartowice&#39;</span><span class="p">,</span> <span class="mf">33.0</span><span class="p">,</span> <span class="mf">31.490962982177734</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">6</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">457914</span><span class="p">,</span><span class="mi">632835</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Splawia&#39;</span><span class="p">,</span> <span class="mf">47.0</span><span class="p">,</span> <span class="mf">54.160626305474175</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">7</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">471361</span><span class="p">,</span><span class="mi">634163</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Piecmorgi&#39;</span><span class="p">,</span> <span class="mf">11.0</span><span class="p">,</span> <span class="mf">52.72516081068251</span><span class="p">]</span>
+<span class="n">ID</span><span class="p">:</span> <span class="mi">8</span> <span class="n">coords</span><span class="p">:</span> <span class="p">(</span><span class="mi">462784</span><span class="p">,</span><span class="mi">615549</span><span class="p">)</span> <span class="n">attrs</span><span class="p">:</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;Swiecie&#39;</span><span class="p">,</span> <span class="mf">19.0</span><span class="p">,</span> <span class="mf">27.470081965128582</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="odczyt-pliku-rastrowego">
+<h3>Odczyt pliku rastrowego<a class="headerlink" href="#odczyt-pliku-rastrowego" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>QGIS nie daje możliwości bezpośredniego odczytu zawartości rastra jako numpy array. Pozwala natomiast na odczyt wielu metadanych pliku, jak również użycia rastrów w procedurach geoprzetwarzania</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rastFile</span> <span class="o">=</span> <span class="s2">&quot;class.tif&quot;</span>
+<span class="n">rastLayer</span> <span class="o">=</span> <span class="n">QgsRasterLayer</span><span class="p">(</span><span class="n">rastFile</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">rastLayer</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+
+
+<span class="nb">print</span><span class="p">(</span><span class="n">rastLayer</span><span class="o">.</span><span class="n">rasterUnitsPerPixelX</span><span class="p">(),</span> <span class="n">rastLayer</span><span class="o">.</span><span class="n">rasterUnitsPerPixelY</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rastLayer</span><span class="o">.</span><span class="n">width</span><span class="p">(),</span><span class="n">rastLayer</span><span class="o">.</span><span class="n">height</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="definiowanie-struktury-warstw-wektorowych">
+<h2>Definiowanie struktury warstw wektorowych<a class="headerlink" href="#definiowanie-struktury-warstw-wektorowych" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Warstwa wektorowa musi mieć zdefiniowany typ, projekcję oraz pola atrybutowe.</p>
+<div class="section" id="prosta-procedura-tworzenia-jednego-punktu">
+<h3>Prosta procedura tworzenia jednego punktu<a class="headerlink" href="#prosta-procedura-tworzenia-jednego-punktu" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Jest to procedura odwrotna do odczytywania danych, którą zaprezentowaliśmy w poprzednim przykładzie. Trzeba utworzyć geometrię i listę atrybutów, połączyć w obiekt feature a następnie listę features dodać do źródła danych (dataProvider)</p>
+<ol class="arabic simple">
+<li>Utworzenie nowej warstwy w pamięci warstwa jest typu punkowego, o
+kodzie epsg:2180 oraz zawiera 2 pola. Nazwa warstwy (do wyświetlenia)
+to nowePunkty, a dataProvider to ‘memory’ co oznacza, że warstwa nie
+zostanie zapisana na dysku a jedyni utworzona w pamięci programu</li>
+<li>Tworzymy pojedynczą feature o nazwie feature</li>
+<li>Tworzymy punkt ze współrzędnych i dodajemy jako geometrię do feature</li>
+<li>dodajemy atrybuty do feature jako listę zgodną ze strukturą pól</li>
+<li>Dodajemy feature do dataProvider jako listę features - tu listę
+jednoelementową</li>
+<li>Uaktualniamy zasięg i dodajemy warstwę do obszaru roboczego</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="mi">457900</span><span class="p">,</span><span class="mi">632800</span><span class="p">)</span>
+<span class="n">nLayer</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s1">&#39;Point?crs=epsg:2180&amp;field=id:int&amp;field=name:string(25)&#39;</span><span class="p">,</span> <span class="s1">&#39;nowePunkty&#39;</span> <span class="p">,</span><span class="s1">&#39;memory&#39;</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">feature</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span> <span class="c1">#2</span>
+<span class="n">point</span> <span class="o">=</span> <span class="n">QgsPointXY</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span> <span class="c1">#3</span>
+<span class="n">feature</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPointXY</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+<span class="n">feature</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="s2">&quot;Nazwa punktu&quot;</span><span class="p">])</span> <span class="c1">#4</span>
+<span class="n">nLayer</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addFeatures</span><span class="p">([</span><span class="n">feature</span><span class="p">])</span> <span class="c1">#5</span>
+<span class="n">nLayer</span><span class="o">.</span><span class="n">updateExtents</span><span class="p">()</span> <span class="c1">#6</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">nLayer</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-tworzaca-pusta-warstwe-geoprzestrzenna">
+<h3>Funkcja tworząca pustą warstwę geoprzestrzenną<a class="headerlink" href="#funkcja-tworzaca-pusta-warstwe-geoprzestrzenna" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Proces budowania warstwy wektorowej pogrupujemy w postaci funkcji. Jako pierwszą utworzymy  funkcję budującą pustą warstwę. Funkcja ma utworzyć warstwę w pamięci, użytkownik musi
+podać jedynie nazwę warstwy oraz opcjonalnie typ danych i kod epsg. Funkcja nie tworzy pól, zostaną dodane w kolejnym kroku.</p>
+<ol class="arabic simple">
+<li>Ustawione na stałe źródło danych jako memory</li>
+<li>Możliwe typy danych. Zakładamy że użytkownik może wpisać typ danych
+błędnie</li>
+<li>Qgis stosuje nazwy typów danych z dużej litery. Jest to trochę
+mylące, użytkownik może wpisać typ z małej litery lub z dużych liter,
+ale funkcja zamienia ją na wersję właściwą (Title).</li>
+<li>Jeżeli typ danych będzie należał do jednego z grupy:
+‘point’,‘polyline’,‘polygon’ zostanie utworzona zmienna tekstowa
+layerSource</li>
+<li>Która zostanie użyta do zbudowania pustej warstwy</li>
+<li>Jeżeli wszystko się zakończy sukcesem, funkcja zwróci pustą warstwę
+ale o znanym typie geometrii i odwołaniu geoprzestrzennym</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_vector_layer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s1">&#39;Point&#39;</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">):</span>
+    <span class="n">provider</span><span class="o">=</span><span class="s1">&#39;memory&#39;</span> <span class="c1">#1</span>
+    <span class="n">types</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;point&#39;</span><span class="p">,</span><span class="s1">&#39;polyline&#39;</span><span class="p">,</span><span class="s1">&#39;polygon&#39;</span><span class="p">)</span> <span class="c1">#2</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">==</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span><span class="p">):</span> <span class="c1">#3,4</span>
+        <span class="n">layerSource</span> <span class="o">=</span> <span class="nb">type</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="o">+</span><span class="s1">&#39;?crs=epsg:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">epsg</span><span class="p">)</span> <span class="c1">#4</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="n">layerSource</span><span class="p">,</span> <span class="n">name</span> <span class="p">,</span><span class="n">provider</span><span class="p">)</span> <span class="c1">#5</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unknown data type&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">layer</span> <span class="c1">#6</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dodawanie-pol-atrybutowych-do-warstwy">
+<h3>Dodawanie pól atrybutowych do warstwy<a class="headerlink" href="#dodawanie-pol-atrybutowych-do-warstwy" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Typy pól w QGIS są definiowane przy pomocy zmiennych całkowitych ukrytych pod tzw. enumeratorami. Jest to klasa która pozwala przypisywać wartości całkowite bardziej rozpozawanym dla człowieka napisom. Clasa QVariant przechowuje różne typy danych pod nazwami zrozumiałymi dla
+człowieka. na przykład QVarinat.Int oznaczony jest kategorią 2.</p>
+<p>Sposób definiowania pól powinien być jednak odporny na niejednoznaczności nazw typów zmiennych. Na przykład typ zmiennej tekstowej można zdefniować jako text, string, char lub varchar. Każdy z tych typów oznacza w praktyce coś innego ale prosta tabela atrybutów pliku geoprzestrzennego posługuje się ograniczoną gamą zmiennych: liczbą całkowitą, wartością, datą i tekstem. Z tego powodu funkcja tworząca atrybuty musi się posługiwać możliwe szerokim spektrum użytych nazw przypisanych do ograniczonego typu pól. Do tego celu wykorzystamy słowniki, gdzie kilka kluczy odnosi się do jednej wartości:</p>
+<p>Sluży do tego definiowanie słownika przy pomocy metody .fromkeys(), która pozwala na dodawanie więcej niż jednego klucza do każdej wartości. W praktyce to rozwiązanie pozwala ustawić właściwy typ danych niezależnie od nazwy zaproponowanej przez użytkownika.</p>
+<div class="admonition note">
+<p class="first admonition-title">Informacja</p>
+<p class="last">To rozwiązanie jest często używane w praktyce programistycznej, jako user-friendly.</p>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+<span class="n">types</span><span class="o">=</span><span class="p">{}</span>
+<span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Int&#39;</span><span class="p">,</span><span class="s1">&#39;Integer&#39;</span><span class="p">,</span><span class="s1">&#39;Long&#39;</span><span class="p">,</span><span class="s1">&#39;Byte&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+<span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Real&#39;</span><span class="p">,</span><span class="s1">&#39;Double&#39;</span><span class="p">,</span><span class="s1">&#39;Double Precision&#39;</span><span class="p">,</span><span class="s1">&#39;Numeric&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span>
+<span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Date&#39;</span><span class="p">,</span><span class="s1">&#39;Datetime&#39;</span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Date</span><span class="p">))</span>
+<span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Text&#39;</span><span class="p">,</span><span class="s1">&#39;String&#39;</span><span class="p">,</span><span class="s1">&#39;Char&#39;</span><span class="p">,</span><span class="s1">&#39;Varchar&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">String</span><span class="p">))</span>
+<span class="n">types</span>
+</pre></div>
+</div>
+<p>Sama funkcja wykonana jest w następujący sposób:</p>
+<ol class="arabic simple">
+<li>Tworzona jest lista typów danych używanych w tworzeniu pliku, co
+pozwala utworzyć pole poprzez podanie typu bezpośrednio</li>
+<li>Funkcja sprawdza czy typ atrybutu znajduje się na liście atrybutów,
+Jeśli tak pomija sprawdzanie warunków i od razu przechodzi do #8;
+jeśli nie:</li>
+<li>Sprawdza czy jest to łańcuch tekstowy, jeśli nie kończy działanie.</li>
+<li>Jeśli jest buduje słownik i</li>
+<li>próbuje pobrać na podstawie słownika właściwy typ</li>
+<li>Ponieważ sposób wpisania typu może być dowolny (Int, int, INT)
+ujednolica wszystko do wersji <em>Title</em></li>
+<li>Jeżeli nie znajduje zwraca błąd i kończy działanie</li>
+<li>Dodawane jest pole do warstwy</li>
+<li>Następuje aktualizacja warstwy</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+
+<span class="k">def</span> <span class="nf">add_attribute</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span><span class="n">attrName</span><span class="p">,</span><span class="n">attrType</span><span class="p">):</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">,</span> <span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">,</span> <span class="n">QVariant</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="n">QVariant</span><span class="o">.</span><span class="n">String</span><span class="p">]</span> <span class="c1">#1</span>
+    <span class="k">if</span> <span class="n">attrType</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span> <span class="c1">#2</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">attrType</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span> <span class="c1">#3</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unrecognized type, exit&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">types</span><span class="o">=</span><span class="p">{}</span> <span class="c1">#4</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Int&#39;</span><span class="p">,</span><span class="s1">&#39;Integer&#39;</span><span class="p">,</span><span class="s1">&#39;Long&#39;</span><span class="p">,</span><span class="s1">&#39;Byte&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Real&#39;</span><span class="p">,</span><span class="s1">&#39;Double&#39;</span><span class="p">,</span><span class="s1">&#39;Double Precision&#39;</span><span class="p">,</span><span class="s1">&#39;Numeric&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Date&#39;</span><span class="p">,</span><span class="s1">&#39;Datetime&#39;</span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Date</span><span class="p">))</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="s1">&#39;Text&#39;</span><span class="p">,</span><span class="s1">&#39;String&#39;</span><span class="p">,</span><span class="s1">&#39;Char&#39;</span><span class="p">,</span><span class="s1">&#39;Varchar&#39;</span><span class="p">],</span><span class="n">QVariant</span><span class="o">.</span><span class="n">String</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span> <span class="c1">#5</span>
+            <span class="n">attrType</span><span class="o">=</span><span class="n">types</span><span class="p">[</span><span class="n">attrType</span><span class="o">.</span><span class="n">title</span><span class="p">()]</span> <span class="c1">#6</span>
+        <span class="k">except</span><span class="p">:</span> <span class="c1">#7</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unrecognized type, exit&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">layer</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addAttributes</span><span class="p">([</span><span class="n">QgsField</span><span class="p">(</span><span class="n">attrName</span><span class="p">,</span><span class="n">attrType</span><span class="p">)])</span> <span class="c1">#8</span>
+    <span class="n">layer</span><span class="o">.</span><span class="n">updateFields</span><span class="p">()</span> <span class="c1">#9</span>
+
+<span class="n">pLayer</span> <span class="o">=</span> <span class="n">create_vector_layer</span><span class="p">(</span><span class="s2">&quot;warstwa&quot;</span><span class="p">)</span>
+
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span><span class="s1">&#39;Int&#39;</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Klasa&quot;</span><span class="p">,</span><span class="s1">&#39;Integer&#39;</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Pow&quot;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Nazwa&quot;</span><span class="p">,</span><span class="s1">&#39;Text&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Należy zwrócić uwagę, funkcja nie musi zwracać warstwy, gdyż do funkcji w praktyce jest przekazany wskaźnik do obiektu, co powoduje że jego modyfikacja nie jest lokalna (zagadnienie b. zaawansowane).</p>
+<p>Na koniec przykłady prawidłowego wywołania funkcji.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pLayer</span> <span class="o">=</span> <span class="n">create_vector_layer</span><span class="p">(</span><span class="s2">&quot;warstwa&quot;</span><span class="p">)</span>
+
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span><span class="s1">&#39;Int&#39;</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Klasa&quot;</span><span class="p">,</span><span class="s1">&#39;Integer&#39;</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Pow&quot;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">)</span>
+<span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;Nazwa&quot;</span><span class="p">,</span><span class="s1">&#39;Text&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="tworzenie-geometrii">
+<h2>Tworzenie geometrii<a class="headerlink" href="#tworzenie-geometrii" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Proces tworzenia geometrii jest kolejnym krokiem po zdefiniowaniu struktury warstwy i jest różny dla różnych typów danych. Ogólne zasady zostały już omówione przy okazji omawiania biblioteki
+OGR:</p>
+<ol class="arabic simple">
+<li>Dla punktu geometria jest budowana na podstawie pary (tuple)
+współrzednych</li>
+<li>Dla linii lista par współrzędnych</li>
+<li>Dla poligonów jest to proces dwuetapowy: utworzenie pierścienia
+(ring) i utworzenie poligonu z pierścieni</li>
+</ol>
+<p>Dla uproszczenia zagadnienia, nie będą wprowadzane metody analizy poprawności danych. Zaproponowane rozwiązania będą “pythonic”, a więc zgodne z zasadami tworzenia kodu w języku Python.</p>
+<div class="section" id="tworzenie-geometrii-punktowej-pojedynczy-punkt">
+<h3>Tworzenie geometrii punktowej (pojedynczy punkt)<a class="headerlink" href="#tworzenie-geometrii-punktowej-pojedynczy-punkt" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Utworzenie wymaga podania: pary współrzędnych jako pojedynczy tuple. W
+takiej sytuacji należy rozwinąć tuple do dwóch wartości; lub dwóch
+wartości numerycznych, wtedy do funkcji przekazujemy dwie współrzędne.
+Po utworzniu punktu tworzymy geometrię z punktu.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_point_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">point</span> <span class="o">=</span> <span class="n">QgsPointXY</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">QgsPointXY</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPointXY</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+
+<span class="n">geometry</span> <span class="o">=</span> <span class="n">create_point_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tworzenie-geometrii-linijnej-pojedyncza-linia">
+<h3>Tworzenie geometrii linijnej (pojedyncza linia)<a class="headerlink" href="#tworzenie-geometrii-linijnej-pojedyncza-linia" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Utworzenie linii wymaga w pierwszej kolejności utworzenia minimum dwóch punktu o zadanych
+współrzędnych a następnie dodania punktu do listy punktów. W ostatnim kroku tworzymy geometrię z listy punktów. Zaproponowana funkcja może przyjąć współrzędne jako listę wartości x i listę wartości y, co oznacza konieczność przekształcenia jej do listy par funkcją zip. Można również
+przekazać gotową listę par.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="o">=</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">create_line_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">list_of_points</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="p">[</span><span class="n">QgsPointXY</span><span class="p">(</span><span class="o">*</span><span class="n">point</span><span class="p">)</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">list_of_points</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPolylineXY</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tworzenie-geometrii-powierzchniowej-pojedynczy-poligon">
+<h3>Tworzenie geometrii powierzchniowej (pojedynczy poligon)<a class="headerlink" href="#tworzenie-geometrii-powierzchniowej-pojedynczy-poligon" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Poligon jest to obiekt który składa się z jednego i tylko jednego pierścienia zewnętrznego oraz zera lub więcej pierścieni wewnętrznych tworzących pustki w poligonie (holes). Z tego powodu tworzenie poligonu, podobnie jak w OGR jest procesem dwuetapowym, etap pierwszy obejmuje utworzenie jednego lub więcej pierścieni</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_ring_geometry</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="n">list_of_points</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">QgsPointXY</span><span class="p">(</span><span class="o">*</span><span class="n">point</span><span class="p">)</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">list_of_points</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Etap drugi połączenie ich w listę składającą się z poligonu wewnętrznego na pierwszymi miejscu i opcjonalnych pustek na kolejnych miejscach. Ostatnim krokiem jest konwersja listy pierścieni na geometrię. Pierścienie wewnętrzne przekazywane są jako lista atrybutów o nieokreślonej długości. Ponieważ wewnątrz funkcji widziane są jako tuple przed połączeniem muszą zostać zamienione na listę.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_polygon_geometry</span><span class="p">(</span><span class="n">outer_ring</span><span class="p">,</span><span class="o">*</span><span class="n">holes</span><span class="p">):</span>
+    <span class="n">polygon</span><span class="o">=</span><span class="p">[</span><span class="n">outer</span><span class="p">]</span><span class="o">+</span><span class="nb">list</span><span class="p">(</span><span class="n">holes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPolygonXY</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="atrybuty-i-budowanie-features">
+<h2>Atrybuty i budowanie features<a class="headerlink" href="#atrybuty-i-budowanie-features" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Trzeci krok, po utworzeniu geometrii to połączanie geometrii i atrybutów w feature. Użyjemy do tego funkcji tworzącej fature oraz fature połączymy w listę. Atrybuty przekazujemy jako listę nazwanych atrybutów (rozwijaną wewnętrznie do słownika). Pozwala to przekazać tylko te atrybuty w formie nazwanej, które chcemy dodać. Pola dla których nie dodano atrybutów pozostaną jako puste (NULL)</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_feature</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span><span class="n">geometry</span><span class="p">,</span><span class="o">**</span><span class="n">attributes</span><span class="p">):</span>
+    <span class="n">feature</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span>
+    <span class="n">feature</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">geometry</span><span class="p">)</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">fields</span><span class="p">()]</span> <span class="c1">#1</span>
+    <span class="n">attrValues</span><span class="o">=</span><span class="p">[]</span> <span class="c1">#2</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span> <span class="c1"># bo wyjątek jak nie to pole</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">attributes</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">value</span><span class="o">=</span><span class="kc">None</span> <span class="c1">#3</span>
+        <span class="n">attrValues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">feature</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">(</span><span class="n">attrValues</span><span class="p">)</span> <span class="c1">#4</span>
+    <span class="k">return</span> <span class="n">feature</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="wypelnianie-pliku-trescia">
+<h2>Wypełnianie pliku treścią<a class="headerlink" href="#wypelnianie-pliku-trescia" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Ostatnim krokiem po utworzeniu feature jest dodanie feature do warstwy i aktualizacja zasięgu. Pozwala to nam na podsumowanie całego procesu tworzenia warstwy, przy założeniu, że dane już posiadamy. Będzie to warstwa zawierająca poligon. Cały proces obejmuje następujące kroki:</p>
+<ol class="arabic simple">
+<li>Zdefiniowanie warstwy</li>
+<li>Dodanie kolejnych atrybutów</li>
+<li>Zdefiniowanie geometrii</li>
+<li>Utworzenie pojedynczej feature</li>
+<li>Dodanie features i zaktualizowanie warstwy</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># dane</span>
+<span class="n">xo</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">]</span>
+<span class="n">yo</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">xh1</span><span class="o">=</span><span class="p">[</span><span class="mi">17</span><span class="p">,</span><span class="mi">19</span><span class="p">,</span><span class="mi">19</span><span class="p">,</span><span class="mi">17</span><span class="p">]</span>
+<span class="n">yh1</span><span class="o">=</span><span class="p">[</span><span class="mi">9</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+<span class="n">xh2</span><span class="o">=</span><span class="p">[</span><span class="mi">14</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">14</span><span class="p">]</span>
+<span class="n">yh2</span><span class="o">=</span><span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span>
+
+ <span class="n">pLayer</span> <span class="o">=</span>  <span class="n">create_vector_layer</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;Polygon&quot;</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">2180</span><span class="p">)</span> <span class="c1">#1</span>
+ <span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span><span class="s2">&quot;Integer&quot;</span><span class="p">)</span> <span class="c1">#2</span>
+ <span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;area&quot;</span><span class="p">,</span><span class="s2">&quot;Numeric&quot;</span><span class="p">)</span>
+ <span class="n">add_attribute</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="s2">&quot;name&quot;</span><span class="p">,</span><span class="s2">&quot;String&quot;</span><span class="p">)</span>
+
+  <span class="c1"># od tego miejsca proces może być częścią pętli, jeżeli mamy więcej obiektów</span>
+ <span class="n">outer</span> <span class="o">=</span> <span class="n">create_ring_geometry</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span><span class="n">yo</span><span class="p">)</span> <span class="c1">#3</span>
+ <span class="n">h1</span> <span class="o">=</span> <span class="n">create_ring_geometry</span><span class="p">(</span><span class="n">xh1</span><span class="p">,</span><span class="n">yh1</span><span class="p">)</span>
+ <span class="n">h2</span> <span class="o">=</span> <span class="n">create_ring_geometry</span><span class="p">(</span><span class="n">xh2</span><span class="p">,</span><span class="n">yh2</span><span class="p">)</span>
+ <span class="n">polygon</span> <span class="o">=</span> <span class="n">create_polygon_geometry</span><span class="p">(</span><span class="n">outer</span><span class="p">,</span><span class="n">h1</span><span class="p">,</span><span class="n">h2</span><span class="p">)</span>
+ <span class="n">feature</span> <span class="o">=</span> <span class="n">create_feature</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span><span class="n">polygon</span><span class="p">,</span><span class="n">ID</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Srodka&quot;</span><span class="p">)</span> <span class="c1">#4</span>
+
+ <span class="c1">#ostatni etap, poza pętlą</span>
+ <span class="n">pLayer</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addFeature</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span> <span class="c1">#5</span>
+ <span class="n">pLayer</span><span class="o">.</span><span class="n">updateExtents</span><span class="p">()</span>
+ <span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">pLayer</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tworzenie-i-zapis-pliku">
+<h2>Tworzenie i zapis pliku<a class="headerlink" href="#tworzenie-i-zapis-pliku" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Jeżeli chcemy zapisać już utworzoną warstwę należy utworzyć obiekt QgsVectorFileWriter i użyć metodę writeAsVectorFormat. Argumentami metody są warstwa, nazwa tworzonego pliku, kodowanie i użyty sterownik zapisu. Domyślnie jest to GeoPackage, dlatego jawnie wywołamy „ESRI Shapefile”</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">write</span> <span class="o">=</span> <span class="n">QgsVectorFileWriter</span><span class="o">.</span><span class="n">writeAsVectorFormat</span><span class="p">(</span><span class="n">pLayer</span><span class="p">,</span> <span class="s2">&quot;poligonik&quot;</span><span class="p">,</span> <span class="s2">&quot;UTF-8&quot;</span><span class="p">,</span><span class="n">driverName</span><span class="o">=</span><span class="s2">&quot;ESRI Shapefile&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="zapis-przetwarzania-bezposrednio-do-pliku">
+<h3>Zapis przetwarzania bezpośrednio do pliku<a class="headerlink" href="#zapis-przetwarzania-bezposrednio-do-pliku" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>W sytuacji, gdy chcemy pominąć etap tworzenia warstwy wewnątrz środowiska QGIS możemy utworzyć obiekt - źródło danych <strong>QgsVectorFileWriter</strong> i zapisywać wyniki geoprzetwarzania bezpośrednio do źródła danych. W tym celu musimy utworzyć pola - jako specjalną listę pól przy pomocy funkcji <strong>QgsFields()</strong> #A i każde kolejne pole dołączyć do tej listy #B. W kolejnym kroku #C, tworzymy CoordinateReferenceSystem, używając systemu EPSG do zdefiniowania projekcji #D. W ostatnim kroku tworzymy obiekt writer definiując:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fields</span> <span class="o">=</span> <span class="n">QgsFields</span><span class="p">()</span> <span class="c1">#A</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span> <span class="c1">#B</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;area&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">String</span><span class="p">))</span> <span class="c1">#C</span>
+
+<span class="n">crs</span> <span class="o">=</span> <span class="n">QgsCoordinateReferenceSystem</span><span class="p">(</span><span class="mi">2180</span><span class="p">,</span><span class="n">QgsCoordinateReferenceSystem</span><span class="o">.</span><span class="n">EpsgCrsId</span><span class="p">)</span> <span class="c1">#D</span>
+<span class="n">crs</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li>nazwę źródła danych</li>
+<li>stronę kodową bazy danych</li>
+<li>listę pól</li>
+<li>typ geometrii</li>
+<li>referencję geoprzestrzenną</li>
+<li>opcjonalnie sterownik</li>
+</ol>
+<p>Po wykonaniu tych czynności możemy każdą kolejną feature dodawać bezpośrednio do obiektu <em>writer</em>. Ostatnim krokiem musi być usunięcie obiektu by zakończyć jego edycję i umożliwić załadowanie do środowiska QGIS.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">writer</span> <span class="o">=</span> <span class="n">QgsVectorFileWriter</span><span class="p">(</span><span class="s1">&#39;poligonink2.shp&#39;</span><span class="p">,</span> \ <span class="c1">#1</span>
+        <span class="s1">&#39;UTF-8&#39;</span><span class="p">,</span> \ <span class="c1">#2</span>
+        <span class="n">fields</span><span class="p">,</span> \ <span class="c1">#3</span>
+        <span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span> \ <span class="c1">#4</span>
+        <span class="n">crs</span><span class="p">,</span> \ <span class="c1">#5</span>
+        <span class="n">driverName</span><span class="o">=</span><span class="s2">&quot;ESRI Shapefile&quot;</span><span class="p">)</span> <span class="c1">#5</span>
+
+
+<span class="c1"># ta linia może być w pętli</span>
+<span class="n">writer</span><span class="o">.</span><span class="n">addFeature</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+<span class="k">del</span> <span class="n">writer</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Podstawy przetwarzania danych w QGIS</a><ul>
+<li><a class="reference internal" href="#odczyt-pliku-wektorowego-z-dysku">Odczyt pliku wektorowego z dysku</a><ul>
+<li><a class="reference internal" href="#dostep-do-pliku">Dostęp do pliku</a></li>
+<li><a class="reference internal" href="#dostep-do-pliku-z-aktywnego-obszaru-roboczego">Dostęp do pliku z aktywnego obszaru roboczego</a></li>
+<li><a class="reference internal" href="#odczyt-zawartosci-pliku">Odczyt zawartości pliku</a></li>
+<li><a class="reference internal" href="#odczyt-pliku-rastrowego">Odczyt pliku rastrowego</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#definiowanie-struktury-warstw-wektorowych">Definiowanie struktury warstw wektorowych</a><ul>
+<li><a class="reference internal" href="#prosta-procedura-tworzenia-jednego-punktu">Prosta procedura tworzenia jednego punktu</a></li>
+<li><a class="reference internal" href="#funkcja-tworzaca-pusta-warstwe-geoprzestrzenna">Funkcja tworząca pustą warstwę geoprzestrzenną</a></li>
+<li><a class="reference internal" href="#dodawanie-pol-atrybutowych-do-warstwy">Dodawanie pól atrybutowych do warstwy</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tworzenie-geometrii">Tworzenie geometrii</a><ul>
+<li><a class="reference internal" href="#tworzenie-geometrii-punktowej-pojedynczy-punkt">Tworzenie geometrii punktowej (pojedynczy punkt)</a></li>
+<li><a class="reference internal" href="#tworzenie-geometrii-linijnej-pojedyncza-linia">Tworzenie geometrii linijnej (pojedyncza linia)</a></li>
+<li><a class="reference internal" href="#tworzenie-geometrii-powierzchniowej-pojedynczy-poligon">Tworzenie geometrii powierzchniowej (pojedynczy poligon)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#atrybuty-i-budowanie-features">Atrybuty i budowanie features</a></li>
+<li><a class="reference internal" href="#wypelnianie-pliku-trescia">Wypełnianie pliku treścią</a></li>
+<li><a class="reference internal" href="#tworzenie-i-zapis-pliku">Tworzenie i zapis pliku</a><ul>
+<li><a class="reference internal" href="#zapis-przetwarzania-bezposrednio-do-pliku">Zapis przetwarzania bezpośrednio do pliku</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="index.html"
+                        title="poprzedni rozdział">Programowanie geoinformacyjne 3</a></p>
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis2.html"
+                        title="następny rozdział">Analizy geoprzestrzenne w Qgis</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis1.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             >dalej</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Programowanie geoinformacyjne 3"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

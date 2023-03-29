@@ -1,0 +1,258 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Framework pyQt - budowanie interace cz.2 &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Tworzenie własnego pluginu" href="qgis6.html" />
+    <link rel="prev" title="Framework pyQt - budowanie interace cz.1" href="qgis5a.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis6.html" title="Tworzenie własnego pluginu"
+             accesskey="N">dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis5a.html" title="Framework pyQt - budowanie interace cz.1"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="framework-pyqt-budowanie-interace-cz-2">
+<h1>Framework pyQt - budowanie interace cz.2<a class="headerlink" href="#framework-pyqt-budowanie-interace-cz-2" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>W kolejnym przykładzie pokażemy, jak wykonać formatkę zawierającą własny widget z dynamicznie zmieniającymi się właściwościami. Jako przykład zostanie pokazana formatka do wpisywania wartości do macierzy konwolucji. Wielkość takiej macierzy nie jest znana, jej rozmiar (ilość wierszy <span class="math notranslate nohighlight">\(\times\)</span> ilość kolumn. Gotowy widget będzie można użyć na przykład w pluginie przeznaczonym do przetwarzania obrazów.</p>
+<p>Ćwiczenie obejmuje trzy standardowe komponenty poznane we wcześniejszej lekcji:</p>
+<ul class="simple">
+<li>spinBox</li>
+<li>pushButton</li>
+<li>Przyciski standardowe OK|Cancel w orientacji pionowej (Qt.Vertical)</li>
+</ul>
+<p>Nowością jest własny widget, czyli formatka do wpisywania macierzy. Po zakończeniu pracy będzie ona wyglądać następująco:</p>
+<img alt="_images/widget01.png" class="align-center" src="_images/widget01.png" />
+<p>Użytkownik widgetu będzie miał tylko jedną możliwość: regulację wielkości macierzy, przy pomocy wartości ustawianej za pomocą spinBox. #1</p>
+<div class="section" id="tworzenie-glownej-formatki">
+<h2>Tworzenie głównej formatki<a class="headerlink" href="#tworzenie-glownej-formatki" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Tworzenie formatki rozpoczniemy od zdefiniowania layautu formatki głównej. Składa się ona z:</p>
+<ul class="simple">
+<li>głównego layaout (HBox), zawierającego dwa elementy: #2</li>
+<li>leftLayout po stronie lewej (VBox)</li>
+<li>standardowe przyciski OK, Cancel po prawej</li>
+</ul>
+<p>W kolejnym kroku zdefiniujemy zawartość lewego layout. Składa się on z:</p>
+<ul class="simple">
+<li>topLayout u góry (HBox)</li>
+<li>własnego widgetu Grid (na razie nie zostanie utworzony, tymczasowo można go zastąpić stretchem)</li>
+</ul>
+<p>Na samym końcu tworzymy topLayout zbudowany z spinBoxa, przycisku i wypełniającego stretcha.</p>
+<p>Standardowe przyciski łączymy ze standardowymi akcjami (<em>accept</em>,*reject*) natomiast spinBox (o nazwie <strong>spinSize</strong>) i <strong>setButton</strong>, który służy do zatwierdzenia wielkości formatki) musimy połączyć w własnymi akcjami.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Form</span><span class="p">(</span><span class="n">QDialog</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1">#buttons</span>
+        <span class="n">buttonBox</span> <span class="o">=</span> <span class="n">QDialogButtonBox</span><span class="p">()</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">setOrientation</span><span class="p">(</span><span class="n">Qt</span><span class="o">.</span><span class="n">Vertical</span><span class="p">)</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">setStandardButtons</span><span class="p">(</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Cancel</span><span class="o">|</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span>
+
+        <span class="c1">#spin and filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spinSize</span><span class="o">=</span><span class="n">QSpinBox</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spinSize</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setButton</span><span class="o">=</span><span class="n">QPushButton</span><span class="p">(</span><span class="s2">&quot;&amp;Set size&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">=</span><span class="n">input_grid</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">topLayout</span><span class="o">=</span><span class="n">QHBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">topLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spinSize</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">topLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">setButton</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">topLayout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="o">=</span><span class="n">QVBoxLayout</span><span class="p">()</span> <span class="c1">#2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">topLayout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainLayout</span><span class="o">=</span><span class="n">QHBoxLayout</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainLayout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buttonBox</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mainLayout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>W pierwszym kroku utworzymy własny widget Jako osobną klasę, która dziedziczy po <strong>QWidget</strong>:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">input_grid</span><span class="p">(</span><span class="n">QWidget</span><span class="p">):</span> <span class="c1">#1</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span> <span class="c1">#2</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">sizePolicy</span><span class="o">=</span><span class="n">QSizePolicy</span><span class="p">(</span><span class="n">QSizePolicy</span><span class="o">.</span><span class="n">Maximum</span><span class="p">,</span> <span class="n">QSizePolicy</span><span class="o">.</span><span class="n">Fixed</span><span class="p">)</span> <span class="c1">#3</span>
+        <span class="n">sizePolicy</span><span class="o">.</span><span class="n">setHeightForWidth</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">QLineEdit</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">n</span><span class="p">)]</span> <span class="c1">#4</span>
+        <span class="n">grid</span><span class="o">=</span><span class="n">QGridLayout</span><span class="p">()</span> <span class="c1">#5</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">lineEdit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">lineEdit</span><span class="o">.</span><span class="n">setSizePolicy</span><span class="p">(</span><span class="n">sizePolicy</span><span class="p">)</span> <span class="c1">#6A</span>
+            <span class="n">lineEdit</span><span class="o">.</span><span class="n">setMaximumSize</span><span class="p">(</span><span class="n">QSize</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span><span class="mi">30</span><span class="p">))</span> <span class="c1">#6B</span>
+            <span class="n">grid</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">lineEdit</span><span class="p">,</span><span class="n">i</span><span class="o">//</span><span class="n">n</span><span class="p">,</span><span class="n">i</span><span class="o">%</span><span class="n">n</span><span class="p">)</span> <span class="c1">#6C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span> <span class="c1">#7</span>
+</pre></div>
+</div>
+<p>Własny widget dziedziczy po klasie z biblioteki Qt QWidget #1, tak więc tworzenie widgetu rozpoczynamy od zdefiniowania klasy potomnej względem QQidget.</p>
+<p>Klasa będzie zawierać tylko funkcję __init__, do której przekażemy jeden argument wielkość macierzy, ustawionej domyślnie na 3. #2</p>
+<p>Po zainicjowaniu obiektu właściwości obiektu nadrzędnego musimy zdefiniować sposób w jaki zachowywać się widget pod względem rozmiaru: #3</p>
+<ul class="simple">
+<li>Ma zawsze wypełniać dostępną przestrzeń</li>
+<li>Wysokość ma zależeć od wysokości</li>
+</ul>
+<p>Następnie budujemy listę obiektów QLineEdit o wielkości n*n #4</p>
+<p>Dodajemy teraz trzeci (obok VBox i HBox) typ layoutu - QGridLayout. Następnie dla każdego elementu QLineEdit: #5</p>
+<ul class="simple">
+<li>ustawiamy maksymalny rozmiar #6A</li>
+<li>przypisujemy zasady traktowania rozmiaru #6B</li>
+<li>każdy z obiektów QLineEdit dodajemy do odpowiedniego oczka siatki. Oczko siatki wyliczamy przy pomocy operatora dzielenia całkowitego indeksu lineEdit (wiersz) - stąd konieczność użycia funkcji enumerate i  operatora modulo (kolumnę) #6C</li>
+</ul>
+<p>Ostatnim krokiem jest ustawienie layoutu (grid) #7</p>
+<p>W tym miejscu zakończyliśmy edycję klasy i możemy dodać ją do layout głównej formatki:</p>
+<ul class="simple">
+<li>tworzymy obiekt grid</li>
+<li>dodajemy go do leftLayout na miejsce tymczasowego obiektu stretch.</li>
+</ul>
+<p>Nasz widget nie może być modyfikowany poprzez proste połączenie zdarzeń emitowanych przez elementy formatki z parametrami własnego widgety. Aby cała formatka działała, należy przygotować dwie funkcje, które będą połączone ze zdarzeniami emitowanymi przez elementy formatki. Pierwsza z nich z nich będzie przerysowywała formatkę przy każdej zmianie, druga, będzie ustawiała końcowy rozmiar formatki. Obie funkcje zostaną powiązane ze zdarzeniami:</p>
+<ul class="simple">
+<li>redraw_grid ze zdarzeniem ValueChanged emitowanym przez spinBox</li>
+<li>set_size ze zdarzeniem <em>clicked</em> emitowanym przez setButton</li>
+</ul>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">redraw_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="o">.</span><span class="n">removeWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">deleteLater</span><span class="p">()</span>
+    <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spinSize</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">=</span><span class="n">input_grid</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leftLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tabela</span><span class="o">=</span><span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">inputs</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">set_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Funkcja <strong>set_size</strong> jest prosta i nie wymaga komentarza - po prostu resetuje rozmiar formatki,</p>
+<p>Funkcja <strong>redraw_grid</strong> wymaga wyjaśnienia czym jest przerysowanie obiektów: jest to usunięcie obiektu i narysowanie go na nowo.
+oznacza to konieczność wykonania następujących czynności:</p>
+<ul class="simple">
+<li>usunięcie obiektu</li>
+<li>wymazanie obiektu z pamięci (deleteLayer), należy zwrócić uwagę że metoda deleteLayer() obiektu grid jest dziedziczona po QWidget, nie musimy definiować sami. Usunięcie obiektu z pamięci ma na celu zapobierzenie sytuacji zbyt dużej konsumcji pamięci. Jest to zagadnienie skomplikowane, dotyczy  współpracy środowiska Python, z frameworkiem Qt i kwestiami zarządzania pamięcią języka C++</li>
+<li>pobranie wartości ze spinBox</li>
+<li>zbudowanie nowego obiektu</li>
+<li>dodanie go do layoutu.</li>
+</ul>
+<p>Ostatni krok nie ma nic wspólnego z interface graficznym ma jedynie na celu zachowanie zawartości macierzy w zmiennej, która może być przekazana do innych części programu. Zawartość zmiennej tabela wyświetlona zostaje po zakończeniu działania formatki</p>
+</div>
+<div class="section" id="wyswietlenie-calej-formatki">
+<h2>wyświetlenie całej formatki<a class="headerlink" href="#wyswietlenie-calej-formatki" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Aby wyświetlić formatkę należy użyć krótkiego kodu, który:</p>
+<ol class="arabic simple">
+<li>Zainicjuje formatkę</li>
+<li>Pokaże…</li>
+<li>Wykona i zachowa rezultaty</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">form</span><span class="o">=</span><span class="n">Form</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">form</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">exec_</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">tabela</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Nic nie wyszło&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Framework pyQt - budowanie interace cz.2</a><ul>
+<li><a class="reference internal" href="#tworzenie-glownej-formatki">Tworzenie głównej formatki</a></li>
+<li><a class="reference internal" href="#wyswietlenie-calej-formatki">wyświetlenie całej formatki</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="qgis5a.html"
+                        title="poprzedni rozdział">Framework pyQt - budowanie interace cz.1</a></p>
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis6.html"
+                        title="następny rozdział">Tworzenie własnego pluginu</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis5b.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis6.html" title="Tworzenie własnego pluginu"
+             >dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis5a.html" title="Framework pyQt - budowanie interace cz.1"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

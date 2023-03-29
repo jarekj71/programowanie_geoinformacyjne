@@ -1,0 +1,236 @@
+Skrypty geoprzetwarzania
+************************
+
+.. toctree::
+   :maxdepth: 2
+
+.. role:: python(code)
+   :language: python
+
+W znakomitej ilości przypadków rozwiązania programistyczne ograniczają się do pojedynczych algorytmów, które przyjmują jeden-dwa pliki wejściowe, kilka parametrów sterujących a zwracają pojedynczą warstwę geoprzestrzenną lub dane w innej, prostrzej formie. W takiej sytuacji, zamiast budować rozbudowaną wielo-plikową strukturę jaką jest plugin, warto rozważyć utworzenie skryptu lub kilku skryptów geoprzetwarzania. Takie podejście ma kilka dodatkowych zalet:
+
+1. Skrypty geoprzetwarzania są prostą strukturą jedno-plikową
+2. Integrują się ze środowiskiem Qgis, i tym samym proste w rozpowszechnianiu
+3. Nie wymagają tworzenia interface graficznego, jest on budowany automatycznie po zdefiniowaniu parametrów
+4. Mogą być częścią modeli zbudowanych z kilku algorytmów
+5. Każdy algorytm może być użyty wielokrotnie do różnych rozwiązań 
+
+
+Katalog wtyczki
+===============
+
+Wtyczki zasadniczo można umieszczać w dowolnym katalogu a następnie dodawać je do skryptów geoprzetwarzania, ale zdecydowanie najprościej trzymać je w domyślnym katalogu, gdzie takie skrypty są tworzone:
+
+**windows**
+    C:\Users\USER\AppData\Roaming\QGIS\QGIS3\profiles\default\processing\scripts
+
+**Linux**
+    /home/USER/.local/share/QGIS/QGIS3/profiles/default/processing/scripts
+
+Jeżeli pozyskujemy skrypty z zewnętrznych źródeł jest do domyślne miejsce do którego powinny być dodawane. Następnie należy je dodać przy pomocy przycisku *Add script to toolbox*
+
+Struktura pliku skryptu - elementy wspólne
+==========================================
+
+Aby utworzyć skrypt geoprzetwarzania integrujący się ze środowiskiem Qgis należy zaimportować QCoreApplication oraz QVariant, aby definiować pola baz danych. Natomiast z qgis.core można zaimprotować wszystkie klasy, lub też tylko te niezbędne, co w teorii powinno przyspieszyć ładowanie skryptu. Pozostałe biblioteki, jak processing czy numpy są ładowane jeżeli potrzebne są do obliczeń. 
+
+1. Klasa powinna mieć nazwę opisującą co algorytm ma robić. Klasa dziedziczy po **QgsProcessingAlgorithm**
+2. Pierwszą funkcją standardową jest funkcja **tr**, która pozwala przygotować wielojęzyczne tłumaczenia dla skryptu. Nie jest obowiązkowa
+3. Utworzenie instancji obiektu. Funkcja zwraca obiekt klasy z której pochodzi
+4. Nazwa. Nazwa skryptu jedno słowo, unikalne
+5. Nazwa wyświetlana w toolbox
+6. Grupa w toolbox, najlepiej grupować skrypty w grupy o podobnych zadaniach lub będących składowymi większego projektu
+7. Unikalny identyfikator grupy
+8. Krótki, jednolinijkowy tekst pomocy 
+
+Pierwsza część skrptu w zasadzie poza szczegółami właściwymi dla każdego skryptu jak nazwa czy zmienne skryptu będą takie same:
+
+.. code:: python
+
+    from PyQt5.QtCore import QCoreApplication
+    from PyQt5.QtCore import QVariant
+    from qgis.core import *
+    
+    import processing
+    import numpy as np
+    
+    class AddLineRandomPoints(QgsProcessingAlgorithm): #1
+    
+        INPUT = 'INPUT' #Domyślne nazwy zmiennych, tak będą wyświetlane w formatce
+        OUTPUT = 'OUTPUT'
+        MAXDIST = 'MAXDIST'
+        NPOINTS = 'NPOINTS'
+    
+        def tr(self, string): #2
+            return QCoreApplication.translate('Processing', string)
+    
+        def createInstance(self): #3
+            return AddLineRandomPoints()
+    
+        def name(self): #4
+            return 'randlinepoints'
+    
+        def displayName(self): #5
+            return self.tr('Random Points along line')
+    
+        def group(self): #6
+            return self.tr('Teaching examples')
+    
+        def groupId(self): #7
+            return 'rpltscripts'
+    
+        def shortHelpString(self): #8
+            return self.tr("Returns point file randomly scattered along line")
+
+Funkcja inicjująca algorytm
+===========================
+
+Kolejnym krokiem, który ma już wpływ na zachowanie skryptu, a konkretnie na komunikację z użytkownikiem ma funkcja **initAlgorithm**. Funkcja ta zawsze będzie wystepować pod tą samą nazwą. Planowany skrypt będzie miał cztery argumenty:
+
+1. warstwę wejściową powinna to być linia
+2. Warstwę wyjściową, punktową
+3. Parametr liczbowy maxdistance określający w do jakiej maksymalnej odległości od linii nowe punkty mogą być generowane
+4. Parametr liczbowy npoints ile punktów zostanie utworzonych.
+
+Każdy z tych parametrów jest obsługiwany przez odpowiednią klasę z grupy QgsProcessingParameter... Każda klasa pozwala kontrolować typ danych wejściowych (na przykład warstaw geoprzestrzenna, wartość numeryczna), rodzaj danych geprzestrzennych (linia, raster), wartości domyśle, oraz nazwę wyświetlaną i krótki opis. 
+
+.. code:: python
+
+    def initAlgorithm(self, config=None):
+
+        self.addParameter(QgsProcessingParameterFeatureSource(
+                self.INPUT,
+                self.tr('Input layer'),
+                [QgsProcessing.TypeVectorLine])
+        )
+        self.addParameter(QgsProcessingParameterNumber(
+                self.MAXDIST, 
+                self.tr('Maximimum distance from line in layer units'),
+                defaultValue=100.)
+        )
+        self.addParameter(QgsProcessingParameterNumber(
+                self.NPOINTS, 
+                self.tr('Number of points'),
+                defaultValue=100)
+        )
+        self.addParameter(QgsProcessingParameterFeatureSink(
+                self.OUTPUT,
+                self.tr('Output layer'))
+        )
+
+Należy podkreślić, że wyjście określa się tu terminem sink, a więc miejsca do którego jest zbierany strumień danych.
+
+Po zbudowaniu interface wystarczy dodać pustą funkcję **processAlgorithm** ...
+
+.. code:: python
+
+    def processAlgorithm(self, parameters, context, feedback):
+        pass
+
+... i przetestować wygląd wtyczki. Interface wtyczki powinien wyglądać następująco:
+
+.. image:: ../images/geoprocess.png
+    :align: center
+
+Funkcja pomocnicza przetwarzająca dane wejściowe
+================================================
+
+Poniższa funkcja nie jest obowiązkowa a jej nazwa nie jest częścią struktury wtyczki, ma jedynie na celu rozdzielenie procesu parsowania i weryfikacji danych wejściowych od właściwego algorytmu przetwarzania danych geoprzestrzennych. Zadania tej funkcji, to pobranie parametrów i konwersja do określonego typu danych. Każdy z typów danych omówiony jest w `systemie pomocy <https://qgis.org/pyqgis/3.6/>`__. Lista typów jest znacznie szersza niż typów danych wejściowych. Na przykład pole interface akceptuje tylko typ numeryczny, ale może on być parsowany do typu integer, double itp.
+
+W przypadku warstw wejściowych należy sprawdzić czy wynik nie jest None, co oznacza że z jakiegoś powodu nie udało się otworzyć warstwy.
+
+W przypadku sink należy zdefiniować strukturę zbioru wyjściowego: listę pól, typ danych i crs. Funkcja tworząca warstwę wyjściową zwraca krotkę zawierającą obiekt oraz jego identyfikator służący do zapisu warstwy.
+
+Aby zweryfikowane parametry mogły być przekazywane pomiędzy funkcjami należy uczynić je publicznymi (self.)
+
+.. code:: python
+
+    def processParameters(self,parameters,context,feedback):
+        source = self.parameterAsSource(
+            parameters,
+            self.INPUT,
+            context
+        )
+        if source is None:
+            raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
+
+        nfeatures = source.featureCount()
+        #feedback.pushInfo('NPOINTS is {}'.format(nfeatures))
+        if nfeatures != 1:
+            raise QgsProcessingException('Only one input line is currently allowed')    
+        
+        #create sink
+        fields = QgsFields()
+        fields.append(QgsField('ID',QVariant.Int))
+        fields.append(QgsField('distance',QVariant.Double))
+        
+        (sink, dest_id) = self.parameterAsSink(
+            parameters,
+            self.OUTPUT,
+            context,
+            fields,
+            QgsWkbTypes.Point,
+            source.sourceCrs()
+        )
+
+        # Send some information to the user
+        #feedback.pushInfo('CRS is {}'.format(source.sourceCrs().authid()))
+
+        if sink is None:
+            raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+
+        var_maxdist = self.parameterAsDouble(
+            parameters,
+            self.MAXDIST,
+            context)
+        
+        var_npoints = self.parameterAsInt(
+            parameters,
+            self.NPOINTS,
+            context)
+        
+        #make variable public
+        self.source = source
+        self.sink = sink
+        self.dest_id = dest_id
+        self.maxdist = var_maxdist
+        self.npoints = var_npoints
+
+Główna funkcja przetwarzająca
+=============================
+
+Główna funkcja przetwarzająca, podobnie jak funkcja inicjująca ma ustaloną odgórnie nazwę: **processAlgorithm**. Dzięki rozdzieleniu logiki skryptu na część sprawdzającą i przetwarzającą ta część może koncentrować się na samym algorytmie przetwarzającym. W takiej sytuacji trzeba wywołać utworzoną wcześniej funkcję **processParameters()** w celu przetworzenia parametrów wejściowych. Sama procedura generowania punktów wzdłóż linii została omówiona we wcześniejszej wersji kursu. :ref:`random-points-label`. 
+
+.. code:: python
+
+    def processAlgorithm(self, parameters, context, feedback):
+        #prepare parameters
+        self.processParameters(parameters, context, feedback)
+                
+        extent = self.source.sourceExtent()
+        #feedback.pushInfo('Extent is {}'.format(extent))
+        xmin = extent.xMinimum() - self.maxdist #3
+        xmax = extent.xMaximum() + self.maxdist
+        ymin = extent.yMinimum() - self.maxdist
+        ymax = extent.yMaximum() + self.maxdist
+                
+        features = self.source.getFeatures()
+        line = next(features)
+        line_geom = line.geometry()
+        
+        features = []
+        id = 0
+        while len(features) < self.npoints: 
+            x = np.random.uniform(xmin,xmax) 
+            y = np.random.uniform(ymin,ymax)
+            point = QgsGeometry.fromPointXY(QgsPointXY(x,y))
+            distance = line_geom.distance(point) 
+            if distance < self.maxdist: 
+                feature = QgsFeature()
+                feature.setGeometry(point)
+                feature.setAttributes([id,distance])
+                features.append(feature)
+                id+=1 #  
+        self.sink.addFeatures(features)
+        
+        return {self.OUTPUT: self.dest_id}

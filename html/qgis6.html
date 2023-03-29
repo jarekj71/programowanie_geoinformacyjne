@@ -1,0 +1,547 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tworzenie własnego pluginu &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="prev" title="Framework pyQt - budowanie interace cz.2" href="qgis5b.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis5b.html" title="Framework pyQt - budowanie interace cz.2"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tworzenie-wlasnego-pluginu">
+<h1>Tworzenie własnego pluginu<a class="headerlink" href="#tworzenie-wlasnego-pluginu" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>W tej części zostanie omówiony w pełni działający plugin który ma spełniać następujące zadania:</p>
+<ol class="arabic simple">
+<li>Ma tworzyć losowy zbiór punktów, zasięg przestrzenny zbioru punktów  ma być generowany na podstawie:<ol class="arabic">
+<li>Wskazanego pliku geoprzestrzennego pobieranego z dysku</li>
+<li>Wybranej warstwy załadowanej już do środowiska QGIS</li>
+<li>Aktywnego zasięgu obszaru roboczego</li>
+</ol>
+</li>
+<li>Użytkownik ma możliwość wskazania dwóch parametrów: A. liczby punktów    (min 1) B. opcjonalnego bufora, który pozwoli zawężać lub rozszerzyć  zakres generowania punktów względem wskazanego zasięgu.</li>
+</ol>
+<p>Ponieważ punkt #1 pozwala na wybór jednej opcji z trzech, użytkownik musi mieć pewność która opcja została wybrana, jeżeli zmienił zdanie. W tym celu na poziomie interakcji z użytkownikiem należy wbudować mechanizmy, które mają zapobiegać niejednoznaczności wyboru. Na poziomie interface należy również uniemożliwić wskazania liczby punktów mniejszej niż 1.</p>
+<p>W czasie przygotowania parametrów algorytmu mogą pojawić się sytuacje, w których wykonanie algorytmu nie będzie możliwe. W takiej sytuacji należy tak przygotować kod, aby plugin poinformował użytkownika o niemożności wykonania zadania i wskazał opcjonalnie sposób poprawienia zadania. Te elementy, które muszą być obsłużone to:</p>
+<ol class="arabic simple">
+<li>Sytuacja, gdy wskazany plik do pobania zasięgu (#1) nie istnieje</li>
+<li>Sytuacja, gdy wybrany plik nie jest warstwą geoprzestrzenną</li>
+<li>Gdy zasięg + bufor tworzy zbyt mały region (o ujemnej powierzchni)</li>
+<li>Gdy wprowadzono wartość dla bufora, która nie jest liczbą</li>
+</ol>
+<p>Dodatkowym problemem będzie prawidłowe zapewnienie komunikacji pomiędzy interface a ciałem skryptu wykonującego plugin.</p>
+<div class="section" id="plik-interface">
+<h2>Plik interface<a class="headerlink" href="#plik-interface" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Zrozumienie materiału tej części samouczka wymaga zapoznania się z materiałami dotyczącymi tworzenia interface graficznych przy pomocy
+biblioteki Qt. Dodawanie kolejnych elementów jest czynnością schematyczną. Dodajemy widget, ustawiamy jego właściwości. Lista właściwości dostępna jest w <a class="reference external" href="http://geoapis.sourcepole.com/pyqt/qwidget">dokumentacji</a> każdego widgetu, dodatkowo wszystkie widgety dziedziczą własności obiektu nadrzędnego <a class="reference external" href="http://geoapis.sourcepole.com/pyqt/qwidget">widget</a>.
+Dodajemy layout, porządkujemy elementy w layoucie (od lewej dla poziomych
+od góry dla pionowych).</p>
+<div class="admonition note">
+<p class="first admonition-title">Informacja</p>
+<p class="last">Brak dobrego źródła danych dla PyQt5, a wskazana wersja zawiera api PyQt4. Różnice między oboma wersjami api nie są duże, i są opisane &lt;<a class="reference external" href="https://www.riverbankcomputing.com/static/Docs/PyQt5/">https://www.riverbankcomputing.com/static/Docs/PyQt5/</a>&gt; __.</p>
+</div>
+<p>Widgety dodawane do formatki dzielą się na aktywne - tj takie których zawartość zmienia się w trakcie jej działania, i których zawartość jest przekazywana do drugiej części pluginu oraz takie, które są inicjowane na początku</p>
+<p>Na podstawie wcześniej przygotowanej formy tworzymy plik interface o nazwie rpForm.py. Do pliku importujemy niezbędne biblioteki oraz tworzymy klasę o nazwie dialogForm dziedziczącą z QDialog. Sposób zbudowania interface wymaga wykonania przygotowania 3 poziomych layoutów: dla rozwijanego menu; dla pola wyboru pliku oraz dla parametrów generowania punktów. Na sam koniec zostanie dodany layout pionowy, który połączy wszystkie elementy w całość. Jako elementy udostępnione w całej klasie są tylko aktywne elementy, z których pobieramy wartości, pozostałe elementy które się nie zmieniają funkcjonują jedynie w czasie wywoływania formatki. Elementy z pierwszej grupy muszą być być częścią klasy, czyli zostać poprzedzone <em>.self</em></p>
+<ol class="arabic simple">
+<li>Linia wyboru z listy lub obszaru roboczego<ol class="arabic">
+<li>Pierwszy element zawiera listę wyboru aktywnych warstw
+geoprzestrzennych wraz z etykietą</li>
+<li>Element drugi zawiera pole checkBox pozwalające na wskazanie
+obszaru roboczego (canvas) jako źródła zasięgu dla generowanego
+zestawu punktów. Element ten nie jest związany z poprzednim, po
+prostu wykorzystuje wolne miejsce</li>
+</ol>
+</li>
+<li>Dodajemy zbiór widgetów pozwalajacy wybrać plik z dysku. Zbiór składa
+się pola w którym pojawi się ścieżka do pliku oraz przycisk
+uruchamiający pole dialogowe pozwalające wybrać plik z dysku. Nazwę i
+ścieżkę można też wpisać ręcznie. Niestety, przycisk “nie wie” co ma
+zrobić. W tym celu:<ol class="arabic">
+<li>Widget wywołuje zdażenie <em>``clicked()``</em> Należy połączyć widget
+przycisk z funkcją, którą nazwaliśmy <strong>chooseButton_clicked()</strong>.</li>
+<li>W reakcji na zdarzenie wywołuje okno dialogowe
+<strong>QFileDialog.getOpenFileName()</strong>, które zwróci ścieżkę dostępu do
+pliku.</li>
+<li>Po zakończeniu działania okna zmienimy właściwość text pola
+chooseField ustawiając ją na wartość zmiennej zwróconej przez
+QFileDialog</li>
+</ol>
+</li>
+<li>Kolejny layout element będzie zawierał pole pozwalające wybrać ilość    punktów oraz wprowadzić wartość bufora<ol class="arabic">
+<li>Do ilości punktów użyjemy widgetu o nazwie spinbox, dla którego
+dodatkowo dodamy ograniczenie minimalnej wartości na 1. Dzięki
+temu nie musimy obsługiwać potencjalnego błędu związanego z
+negatywną lub zerową liczbą punktów.</li>
+<li>Do Wprowadzenia bufora użyjemy pola tekstowego, z domyślną
+wartością: 0. Niestety do pola można wprowadzić cokolwiek, w
+związku z tym obsługę tego wyjątku musimy oprogramować osobno, w
+drugiej części pluginu.</li>
+</ol>
+</li>
+<li>Dodajemy standardowe przyciski formy Cancel|Ok</li>
+<li>Budujemy główny, pionowy layout dodając poprzednie layouty oraz    buttonBox</li>
+<li>Następny element to oprogramowanie zmiany decyzji użytkownika co do    źródła zasięgu generowanej warstwy punktowej. Jest wiele możliwości    rozwiązania tego problemu w tym również takie, jak łączenie zasięgów  (część wspólna lub suma) wzajemna weryfikacja itp. Każde z tych
+rozwiązań wymaga osobnego kodu, który wykracza poza podstawowe  szkolenie. Zadanie zostanie zrealizowane w sposób najprostszy, każdy  kolejny wybór będzie kasował pozostałe. Zostanie to rozwiązane przy    pomocy funkcji <em>``change()``</em>, która będzie czyściła wszystkie  aktywne elementy, za wyjątkiem tego, który ostatnio został zmieniony.  Informacja, który to był obiekt, będzie przekazywana do funkcji jako    zmienna<ol class="arabic">
+<li>Dla pola wyboru z dysku funkcja będzie wywoływana po ustawieniu
+pola chooseField na scieżkę dostępu i będzie czyściła comboBox i
+checkBox</li>
+<li>W przypadku zmiany stanu comboBox i checkBox nie tworzymy
+osobnych funkcji, ale łączymy zdarzenia zmiany stanu widgetów:
+<code class="docutils literal notranslate"><span class="pre">currentIndexChanged</span></code> i <code class="docutils literal notranslate"><span class="pre">stateChanged</span></code> z funkcją <code class="docutils literal notranslate"><span class="pre">choose()</span></code>.
+Niestety, w slotach mogą znajdować się jedynie fukcje bez
+parametrów, z tego powodu zastosujemy operator <strong>lambda</strong>, który
+utworzy nam bezparametrową funkcję anonimową, której ciałem będzie
+funkcja choose() z parametrem “combo” i “check” odpowiednio dla
+każdego z widgetów.</li>
+</ol>
+</li>
+</ol>
+<p><strong>Planowany wygląd formatki</strong>:</p>
+<img alt="_images/p02.png" class="align-center" src="_images/p02.png" />
+<p>Pełny kod formatki rpForm.py:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtGui</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtWidgets</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="k">class</span> <span class="nc">dialogForm</span><span class="p">(</span><span class="n">QDialog</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Random Points&quot;</span><span class="p">)</span>
+
+        <span class="c1">#choose from list or canvas</span>
+        <span class="n">comboLayout</span><span class="o">=</span><span class="n">QHBoxLayout</span><span class="p">()</span> <span class="c1">#1</span>
+
+        <span class="n">comboLabel</span><span class="o">=</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Active &amp;layers&quot;</span><span class="p">)</span> <span class="c1">#A</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">=</span><span class="n">QComboBox</span><span class="p">()</span>
+        <span class="n">comboLabel</span><span class="o">.</span><span class="n">setBuddy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chooseCombo</span><span class="p">)</span>
+        <span class="n">comboLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">comboLabel</span><span class="p">)</span>
+        <span class="n">comboLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chooseCombo</span><span class="p">)</span>
+
+        <span class="n">checkLabel</span><span class="o">=</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Active &amp;window&quot;</span><span class="p">)</span> <span class="c1">#B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkCanvas</span><span class="o">=</span><span class="n">QCheckBox</span><span class="p">()</span>
+        <span class="n">checkLabel</span><span class="o">.</span><span class="n">setBuddy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkCanvas</span><span class="p">)</span>
+        <span class="n">comboLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkCanvas</span><span class="p">)</span>
+        <span class="n">comboLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">checkLabel</span><span class="p">)</span>
+        <span class="n">comboLayout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>
+
+        <span class="c1">#choose from disc</span>
+        <span class="n">fieldLayout</span><span class="o">=</span><span class="n">QHBoxLayout</span><span class="p">()</span> <span class="c1">#2</span>
+        <span class="n">fieldLabel</span><span class="o">=</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;&amp;File from disc&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chooseField</span><span class="o">=</span><span class="n">QLineEdit</span><span class="p">()</span>
+        <span class="n">chooseFiledButton</span><span class="o">=</span><span class="n">QPushButton</span><span class="p">(</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
+        <span class="n">fieldLabel</span><span class="o">.</span><span class="n">setBuddy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chooseField</span><span class="p">)</span>
+        <span class="n">fieldLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">fieldLabel</span><span class="p">)</span>
+        <span class="n">fieldLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chooseField</span><span class="p">)</span>
+        <span class="n">fieldLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">chooseFiledButton</span><span class="p">)</span>
+
+        <span class="c1">#points and buffer</span>
+        <span class="n">setupLayout</span><span class="o">=</span><span class="n">QHBoxLayout</span><span class="p">()</span>  <span class="c1">#3</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">npointsSpin</span><span class="o">=</span><span class="n">QSpinBox</span><span class="p">()</span> <span class="c1">#A</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npointsSpin</span><span class="o">.</span><span class="n">setMinimum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">npointsLabel</span><span class="o">=</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Number of &amp;points&quot;</span><span class="p">)</span>
+        <span class="n">npointsLabel</span><span class="o">.</span><span class="n">setBuddy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npointsSpin</span><span class="p">)</span>
+        <span class="n">setupLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">npointsLabel</span><span class="p">)</span>
+        <span class="n">setupLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npointsSpin</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bufferField</span><span class="o">=</span><span class="n">QLineEdit</span><span class="p">()</span> <span class="c1">#B</span>
+        <span class="n">bufferLabel</span><span class="o">=</span><span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Size of &amp;Buffer&quot;</span><span class="p">)</span>
+        <span class="n">bufferLabel</span><span class="o">.</span><span class="n">setBuddy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferField</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bufferField</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="n">setupLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">bufferLabel</span><span class="p">)</span>
+        <span class="n">setupLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferField</span><span class="p">)</span>
+        <span class="n">setupLayout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>
+
+        <span class="c1">#standard buttons</span>
+        <span class="n">buttonBox</span> <span class="o">=</span> <span class="n">QDialogButtonBox</span><span class="p">()</span> <span class="c1">#4</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">setStandardButtons</span><span class="p">(</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Cancel</span><span class="o">|</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span>
+
+        <span class="c1">#final layout</span>
+        <span class="n">mainLayout</span><span class="o">=</span><span class="n">QVBoxLayout</span><span class="p">()</span> <span class="c1">#5</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="n">comboLayout</span><span class="p">)</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="n">fieldLayout</span><span class="p">)</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addLayout</span><span class="p">(</span><span class="n">setupLayout</span><span class="p">)</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">buttonBox</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="n">mainLayout</span><span class="p">)</span>
+
+        <span class="c1">#basic connections</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">accepted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accept</span><span class="p">)</span> <span class="c1">#4</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">rejected</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reject</span><span class="p">)</span>
+        <span class="n">chooseFiledButton</span><span class="o">.</span><span class="n">clicked</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chooseButton_clicked</span><span class="p">)</span> <span class="c1">#2A</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">.</span><span class="n">currentIndexChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">change</span><span class="p">(</span><span class="s2">&quot;combo&quot;</span><span class="p">))</span> <span class="c1">#6B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkCanvas</span><span class="o">.</span><span class="n">stateChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">change</span><span class="p">(</span><span class="s2">&quot;check&quot;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">chooseButton_clicked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#2A</span>
+        <span class="n">fileName</span> <span class="o">=</span> <span class="n">QFileDialog</span><span class="o">.</span>\
+            <span class="n">getOpenFileName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="s2">&quot;File to take extend from&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span><span class="s2">&quot;All Files (*)&quot;</span><span class="p">)</span> <span class="c1">#2B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chooseField</span><span class="o">.</span><span class="n">setText</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span> <span class="c1">#2C</span>
+        <span class="c1"># remove remained selectors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">change</span><span class="p">(</span><span class="s2">&quot;field&quot;</span><span class="p">)</span> <span class="c1">#6A</span>
+
+    <span class="k">def</span> <span class="nf">change</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">what</span><span class="p">):</span> <span class="c1">#6</span>
+      <span class="sd">&#39;&#39;&#39; This function allow to reset other elements</span>
+<span class="sd">          except pointed by `what` var &#39;&#39;&#39;</span>
+      <span class="k">if</span> <span class="n">what</span> <span class="o">!=</span> <span class="s2">&quot;combo&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">what</span> <span class="o">!=</span> <span class="s2">&quot;check&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkCanvas</span><span class="o">.</span><span class="n">setChecked</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">what</span> <span class="o">!=</span> <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chooseField</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="wlasciwy-algorytm">
+<h2>Właściwy algorytm<a class="headerlink" href="#wlasciwy-algorytm" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<div class="section" id="czesc-ogolna-definicja-klasy-i-funkcje-standardowe">
+<h3>Część ogólna: definicja klasy i funkcje standardowe<a class="headerlink" href="#czesc-ogolna-definicja-klasy-i-funkcje-standardowe" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Po zaimportowaniu niezbędnych bibliotek, pliku resources oraz klasy dialogForm z pliku rpForm tworzymy klasę, którą nazwiemy <strong>``randomPoints``</strong>, działanie funkcji <strong>init()</strong>, <strong>initGui()</strong> oraz <strong>unload()</strong> jest takie same jak w przypadku omówionego poprzednio “pluginu minimum”.
+Zmianie uległy jedynie elementy definiujące umieszczenie pluginu w interface użytkownika.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtGui</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">qgis.core</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">resources</span>
+<span class="kn">from</span> <span class="nn">.rpForm</span> <span class="k">import</span> <span class="n">dialogForm</span>
+
+<span class="k">class</span> <span class="nc">randomPoints</span><span class="p">:</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iface</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span> <span class="o">=</span> <span class="n">iface</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">=</span><span class="n">dialogForm</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+  <span class="k">def</span> <span class="nf">initGui</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">QAction</span><span class="p">(</span><span class="n">QIcon</span><span class="p">(</span><span class="s2">&quot;:/plugins/randomPoints/icon.png&quot;</span><span class="p">),</span> <span class="s2">&quot;Random points&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">mainWindow</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">setStatusTip</span><span class="p">(</span><span class="s2">&quot;Generates random points using existing extent&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">addToolBarIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">addPluginToMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Home made&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">removePluginMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Home made&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">removeToolBarIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-run">
+<h3>Funkcja run<a class="headerlink" href="#funkcja-run" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Funkcja ta zawiera wywołania funkcji zdefiniownanych w klasie randomPoints().</p>
+<ol class="arabic simple">
+<li>W pierwszej kolejności wywołuje fukcje przygotowujące inferface</li>
+<li>Następnie wykonuje formatkę i jeśli zakończy się ona sukcesem…</li>
+<li>Pobiera dane z formatki funkcją parse_input…</li>
+<li>Wykonuje właściwą część skryptu</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">create_layer_list</span><span class="p">()</span> <span class="c1">#1</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">exec_</span><span class="p">()</span> <span class="c1">#2</span>
+  <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">parse_input</span><span class="p">()</span> <span class="c1">#3</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">create_point_file</span><span class="p">()</span> <span class="c1">#4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-create-layer-list">
+<h3>Funkcja create_layer_list<a class="headerlink" href="#funkcja-create-layer-list" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Tak funkcja ma na celu przygotowanie danych wejściowych do formatki i
+przesłanie jej do formatki, jeszcze zanim zostanie ona pokazana. Funkcja
+ta ma dostęp do obiektu <em>``dialog``</em> utworzonego w funkcji _<em>init_</em>
+klasy i tym samym ma dostęp do wszyskich pól, które są częścią klasy
+(zaczynają się od self).</p>
+<ol class="arabic simple">
+<li>W pierwszej kolejności funkcja czyści listę</li>
+<li>Następnie pobiera z interface QGIS wszystkie warstwy (leged) w
+aktywnym widoku, wymagana jawna konwersja na listę</li>
+<li>Następnie dla każdej warstwy pobiera jej nazwę i buduje z nich listę.
+Na początku jest linia pusta, tak aby wskazać sytuację, gdy żadna
+warstwa nie jest wybrana</li>
+<li>W ostatnim korku lista nazw zostaje przypisana do combo</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_layer_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="sd">&#39;&#39;&#39; Build list of layers&#39;&#39;&#39;</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span> <span class="c1">#1</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">mapLayers</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="c1">#2</span>
+  <span class="n">layer_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">]</span> <span class="c1">#3</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">.</span><span class="n">addItems</span><span class="p">(</span><span class="n">layer_list</span><span class="p">)</span>  <span class="c1">#4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-parse-input">
+<h3>Funkcja parse_input<a class="headerlink" href="#funkcja-parse-input" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Ta część skryptu jest podzielona na funkcję główną i funkcje pomocnicze (definiowane jako prywante klasy) i ma na celu pobranie argumentów z formatki, sprawdzenie ich poprawności oraz przekazanie tych parametrów do dalszej części skryptu. Interesują nas następujące parametry: bufor i liczba punktów a ponieważ zasięg może pochodzić z różnych źródeł interesuje nas tylko zasięg do utworzenia punktów a nie jego źródło. W tej części definiujemy również docelową projekcję tworzonej warstwy.</p>
+<p>Funkcja wykonuje następujące czynności:</p>
+<ol class="arabic simple">
+<li>Pobranie wartości bufora z pola bufferField i sprawdzenie #A czy
+można go skonwertować na liczbę. Jeżeli nie wypisać komuniakt na
+messageBar #B i opuścić skrypt #C.</li>
+<li>Pobrać liczbę punktów. Niczego nie trzeba sprawdzać,formatka nie
+wypuści czegoś co nie jest liczbą całkowitą większą od 0</li>
+<li>Pobrać trzy zmienne:<ol class="arabic">
+<li>index z combo</li>
+<li>nazwę pliku z pola z nazwą</li>
+<li>stan checkboxa</li>
+</ol>
+</li>
+<li>Pobrać epsg z registry/canvas jako domyślne dla warstwy docelowej</li>
+<li>zainicjować zmienną extent</li>
+<li>Jeżeli index jest większy od 0 wybrano warstwę z Canvas a ponieważ
+pozostałe zostały wyczyszczone, pobieramy extent ze wskazanej
+warstwy. Zmniejszamy index o 1 ponieważ index 0 jest przypisany do
+pustej linijki</li>
+<li>Jeżeli zmienna filename ma wartość pobieramy extent ze wskazanego
+pliku</li>
+<li>W każdym pozostałym przypadku pobieramy extent z canvas (nawet jak go
+nie wybraliśmy). Jest to opcja domyślna jeżeli użytkownik nie
+wybierze żadnej warstwy</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">parse_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+  <span class="n">gbuffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">bufferField</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="c1">#1</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">buff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">gbuffer</span><span class="p">)</span> <span class="c1">#A</span>
+  <span class="k">except</span><span class="p">:</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;buffer parameter &quot;</span> <span class="o">+</span> <span class="n">gbuffer</span> <span class="o">+</span> <span class="s2">&quot; is not a valid number&quot;</span> <span class="c1">#B</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">messageBar</span><span class="p">()</span><span class="o">.</span><span class="n">pushMessage</span><span class="p">(</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="c1">#B</span>
+    <span class="n">exit</span> <span class="c1">#C</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">buff</span>
+
+  <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">npointsSpin</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="c1">#2</span>
+
+  <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">chooseCombo</span><span class="o">.</span><span class="n">currentIndex</span><span class="p">()</span> <span class="c1">#3A</span>
+  <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">chooseField</span><span class="o">.</span><span class="n">text</span><span class="p">()</span> <span class="c1">#3B</span>
+  <span class="n">check</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialog</span><span class="o">.</span><span class="n">checkCanvas</span><span class="o">.</span><span class="n">checkState</span><span class="p">()</span> <span class="c1">#3C</span>
+
+  <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">()</span> <span class="c1">#4</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1">#5</span>
+  <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">__get_extent_from_active_layers</span><span class="p">(</span><span class="n">index</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#6</span>
+  <span class="k">elif</span> <span class="n">filename</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">__get_extent_form_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="c1">#7</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">__get_extent_from_canvas</span><span class="p">()</span> <span class="c1">#8</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="funkcje-pomocnicze">
+<h2>Funkcje pomocnicze<a class="headerlink" href="#funkcje-pomocnicze" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Służą do pobrania zasięgu z jednej z trzech opcji:</p>
+<div class="section" id="funkcja-get-extent-form-file">
+<h3>Funkcja __get_extent_form_file<a class="headerlink" href="#funkcja-get-extent-form-file" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<ol class="arabic simple">
+<li>Funkcja pobiera jako argument nazwę pliku.</li>
+<li>Sprawdza czy plik istnieje</li>
+<li>Sprawdza czy jest to plik geoprzestrzenny (isValid)</li>
+<li>Pobiera epsg z warstwy docelowej. Jak nie znajduje używa domyślnego
+dla canvas</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__get_extent_form_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span> <span class="c1">#1</span>
+   <span class="k">if</span> <span class="ow">not</span> <span class="n">QFileInfo</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">isFile</span><span class="p">():</span> <span class="c1">#2</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">messageBar</span><span class="p">()</span><span class="o">.</span><span class="n">pushMessage</span><span class="p">(</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="s2">&quot;cannot find &quot;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+       <span class="n">exit</span>
+  <span class="c1"># continue processing, check if geospatial layer</span>
+  <span class="n">layer</span><span class="o">=</span> <span class="n">processing</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">layer</span><span class="o">.</span><span class="n">isValid</span><span class="p">():</span> <span class="c1">#2</span>
+      <span class="n">message</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot; is not valid geospatial layer&quot;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">messageBar</span><span class="p">()</span><span class="o">.</span><span class="n">pushMessage</span><span class="p">(</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">exit</span>
+
+  <span class="bp">self</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">extent</span><span class="p">()</span> <span class="c1">#3</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span> <span class="c1">#4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="funkcja-get-extent-from-active-layers">
+<h3>Funkcja __get_extent_from_active_layers<a class="headerlink" href="#funkcja-get-extent-from-active-layers" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<ol class="arabic simple">
+<li>Pobiera jako argument index warstwy</li>
+<li>Pobiera extent ze wskazanej warstwy (są na liście zbudowanej w
+funkcji get_list_of_layers</li>
+<li>Pobiera epsg z warstwy docelowej. Jak nie znajduje używa domyślnego
+dla canvas</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__get_extent_from_active_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">index</span><span class="p">):</span> <span class="c1">#1</span>
+   <span class="bp">self</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">extent</span><span class="p">()</span> <span class="c1">#2</span>
+   <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span> <span class="c1">#3</span>
+</pre></div>
+</div>
+<p>Funkcja__get_extent_from_canvas``</p>
+<p>Po prostu pobiera extent z obszaru roboczego. Nic nie musi sprawdzać,
+używa epsg warstwy roboczej ustawione w funkcji parse_input</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">__get_extent_from_canvas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+   <span class="bp">self</span><span class="o">.</span><span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">mapCanvas</span><span class="p">()</span><span class="o">.</span><span class="n">extent</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="funkcja-glowna-create-point-file">
+<h2>Funkcja główna: create_point_file<a class="headerlink" href="#funkcja-glowna-create-point-file" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Główna funkcja ma już wszystkie niezbędne argumenty. Są one sprawdzone pod względem poprawności i dostępne dla wszystkich funkcji klasy. Funkcja działa następująco:</p>
+<ol class="arabic simple">
+<li>Dla uproszczenia zapisu, przepisuje wartosci ze zmiennych klasy do
+zmiennych lokalnych</li>
+<li>Sprawdza czy zasięgi po dodaniu bufora (ujemnego) nie zmniejszą się
+poniżej zera, jeżeli tak jest skrypt zakończy działanie</li>
+<li>Losuje dwie listy dla x i y od od min do max <span class="math notranslate nohighlight">\(\pm\)</span> buffer</li>
+<li>Łączy dwie listy w listę par punktów (tuples).</li>
+<li>Tworzy nową warstwę punktową w pamięci</li>
+<li>Dodaje punkty, tak samo jak w OGR z tą różnicą że najpirw tworzona
+jest lista features i inicjowany jest atrybut id wartością 1; a
+następnie:<ol class="arabic">
+<li>Tworzone jest feature i kolejny id (enumerate)</li>
+<li>Tworzony jest punkt (z krotki)</li>
+<li>Dodawana jest geometria…</li>
+<li>…oraz atrybut id zwiększony o 1</li>
+<li>Na koniec feature jest dodawane do listy</li>
+</ol>
+</li>
+<li>Lista features dodawana jest do zbioru danych</li>
+<li>Następuje aktualizacja zasięgu warstwy (nie jest aktualizowany
+automatycznie)</li>
+<li>Warstwa jest dodawana do canvas/registry. Nie jest automatycznie zapisywana</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">create_point_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+   <span class="n">ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extent</span> <span class="c1">#1</span>
+   <span class="n">buff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span>
+   <span class="n">npoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">npoints</span>
+
+   <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">xMinimum</span><span class="p">()</span><span class="o">-</span><span class="n">buff</span><span class="o">&gt;=</span><span class="n">ext</span><span class="o">.</span><span class="n">xMaximum</span><span class="p">()</span><span class="o">+</span><span class="n">buff</span> <span class="ow">or</span> \
+       <span class="n">ext</span><span class="o">.</span><span class="n">yMinimum</span><span class="p">()</span><span class="o">-</span><span class="n">buff</span><span class="o">&gt;=</span><span class="n">ext</span><span class="o">.</span><span class="n">yMaximum</span><span class="p">()</span><span class="o">+</span><span class="n">buff</span><span class="p">:</span> <span class="c1">#2</span>
+       <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;layer extent is too small or buffer to large&quot;</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">messageBar</span><span class="p">()</span><span class="o">.</span><span class="n">pushMessage</span><span class="p">(</span><span class="s2">&quot;Error&quot;</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+       <span class="n">exit</span>
+
+  <span class="n">x</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">ext</span><span class="o">.</span><span class="n">xMinimum</span><span class="p">()</span><span class="o">-</span><span class="n">buff</span><span class="p">,</span><span class="n">ext</span><span class="o">.</span><span class="n">xMaximum</span><span class="p">()</span><span class="o">+</span><span class="n">buff</span><span class="p">,</span><span class="n">npoints</span><span class="p">))</span> <span class="c1">#3</span>
+  <span class="n">y</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">ext</span><span class="o">.</span><span class="n">yMinimum</span><span class="p">()</span><span class="o">-</span><span class="n">buff</span><span class="p">,</span><span class="n">ext</span><span class="o">.</span><span class="n">yMaximum</span><span class="p">()</span><span class="o">+</span><span class="n">buff</span><span class="p">,</span><span class="n">npoints</span><span class="p">))</span>
+  <span class="n">points</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span> <span class="c1">#4</span>
+
+  <span class="n">layerSource</span> <span class="o">=</span><span class="s1">&#39;Point?crs=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epsg</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;&amp;field=id:integer&#39;</span> <span class="c1">#5</span>
+  <span class="n">player</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="n">layerSource</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span> <span class="p">,</span><span class="s1">&#39;memory&#39;</span><span class="p">)</span>
+  <span class="n">Qpoints</span><span class="o">=</span><span class="p">[]</span> <span class="c1">#6</span>
+
+  <span class="k">for</span> <span class="nb">id</span><span class="p">,</span><span class="n">pt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+      <span class="n">Qpoint</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span> <span class="c1">#A</span>
+      <span class="n">qpt</span> <span class="o">=</span> <span class="n">QgsPointXY</span><span class="p">(</span><span class="o">*</span><span class="n">pt</span><span class="p">)</span> <span class="c1">#B</span>
+      <span class="n">Qpoint</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPointXY</span><span class="p">(</span><span class="n">qpt</span><span class="p">))</span> <span class="c1">#C</span>
+      <span class="n">Qpoint</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="nb">id</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="c1">#D</span>
+      <span class="n">Qpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Qpoint</span><span class="p">)</span> <span class="c1">#E</span>
+
+  <span class="n">player</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addFeatures</span><span class="p">(</span><span class="n">Qpoints</span><span class="p">)</span> <span class="c1">#7</span>
+  <span class="n">player</span><span class="o">.</span><span class="n">updateExtents</span><span class="p">()</span> <span class="c1">#8</span>
+  <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">player</span><span class="p">)</span> <span class="c1">#9</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Tworzenie własnego pluginu</a><ul>
+<li><a class="reference internal" href="#plik-interface">Plik interface</a></li>
+<li><a class="reference internal" href="#wlasciwy-algorytm">Właściwy algorytm</a><ul>
+<li><a class="reference internal" href="#czesc-ogolna-definicja-klasy-i-funkcje-standardowe">Część ogólna: definicja klasy i funkcje standardowe</a></li>
+<li><a class="reference internal" href="#funkcja-run">Funkcja run</a></li>
+<li><a class="reference internal" href="#funkcja-create-layer-list">Funkcja create_layer_list</a></li>
+<li><a class="reference internal" href="#funkcja-parse-input">Funkcja parse_input</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#funkcje-pomocnicze">Funkcje pomocnicze</a><ul>
+<li><a class="reference internal" href="#funkcja-get-extent-form-file">Funkcja __get_extent_form_file</a></li>
+<li><a class="reference internal" href="#funkcja-get-extent-from-active-layers">Funkcja __get_extent_from_active_layers</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#funkcja-glowna-create-point-file">Funkcja główna: create_point_file</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="qgis5b.html"
+                        title="poprzedni rozdział">Framework pyQt - budowanie interace cz.2</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis6.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis5b.html" title="Framework pyQt - budowanie interace cz.2"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

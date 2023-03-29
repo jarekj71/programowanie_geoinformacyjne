@@ -1,0 +1,14 @@
+[general]
+name=Random Points
+email=me@mail.com
+author=jarekj
+qgisMinimumVersion=3.0
+about=Data-based Random points generator
+description=Plugin creates set of points
+    randomly distributed over the area
+    defined by layer, disc layer or curent canvas extend
+    Extend can be modified by buffer.
+version=version 0.99
+tracker=http://bugs.server.org
+repository=http://www.server.org/repo
+experimental=True

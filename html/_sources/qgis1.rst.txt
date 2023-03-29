@@ -1,0 +1,452 @@
+Podstawy przetwarzania danych w QGIS
+************************************
+.. toctree::
+   :maxdepth: 2
+
+.. role:: python(code)
+   :language: python
+
+W zakresie przetwarzania danych QGIS posiada swoje własne API, które jest oparte na bezpośrednio na GDAL/OGR. Znajomość zasad przetwarzania danych przy pomocy tych narzędzi znacząco ułatwia tworzenie skryptów geoprzetwarzania i pluginów . W tej części zostaną omówione zasady odczytywania, tworzenia i zapisu plików wektorowych i rastrowych w przy pomocy API QGIS.
+
+Odczyt pliku wektorowego z dysku
+================================
+
+Dostęp do pliku
+---------------
+
+Aby otworzyć plik wektorowy, należy określić ścieżkę dostępu, najlepiej poprzez zmianę obszaru roboczego  do pliku a następnie,
+
+1. przy pomocy funkcji QgsVectorLayer() otworzyć dostęp do pliku jako 
+   warstwa o nazwie punkty przez sterownik ogr
+2. Sprawdzić , czy jest to prawidłowa warstwa wektorowa
+3. Utworzyć referencję do aktywnego projektu, tu o nazwie *registry*
+4. Dodać plik do obszaru roboczego
+
+.. code:: python
+
+    os.chdir(path)
+    pointFile = "points.shp" 
+    pointLayer = QgsVectorLayer(pointFile, "punkty", "ogr") #1
+    pointLayer.isValid() #2
+
+
+    registry = QgsProject.instance() #3
+    registry.addMapLayer(pointLayer) #4
+    
+
+
+Dostęp do pliku z aktywnego obszaru roboczego
+---------------------------------------------
+
+W przypadku, gdy plik znajduje się w obszarze roboczym jako warstwa - na przykład wczytany przez użytkownika, warstwy tworzą listę w ramach obiektu *registry*. Jeżeli znamy numer indeksu warstwy, możemy ją wywołać poprzez ten indeks. Listę zarejestrowanych
+warstw uzyskamy za pomocą listy zasięgu:
+
+.. code:: python
+
+   registry.mapLayers().values()
+
+Jednakże, aby dodać wczytaną warstwę (lub więcej warstw) do obszaru
+roboczego należy wykonać zupełnie inne polecenie:
+
+.. code:: python
+
+   registry.addMapLayer(pointLayer)
+
+Odczyt zawartości pliku
+-----------------------
+
+Pomimo, że możemy wyświetlić plik w obszarze roboczym QGIS, nie mamy bezpośredniego dostępu do jego zawartości. Dostęp do zawartości zostanie omówiony na przykładzie dwóch funkcji wyświetlającej zawartość pliku punktowego. Plik wektorowy składa się z obiektów features, każda feature składa się z identyfikatora, geometrii oraz atrybutów. Odczytując dane w pierwszej kolejności odczytujemy features, a następnie z każdej feature wydobywamy geometrię i atrybuty. Procedura ta niczym nie różni się od tej znanej z OGR.
+
+1. Odwołanie do features z warstwy
+2. Pobór pierwszej features
+3. Wypisanie wszystkich pól i ich typów dla pierwszej features
+
+.. code:: python
+
+    def show_point_layer(layer):
+        features = layer.getFeatures() #1
+        feature=next(features) #2
+        for field in feature.fields().toList(): #3
+            print(field.name()+": "+field.typeName())
+
+.. code:: python
+
+    show_point_layer(pointLayer)
+    id: Integer
+    nazwa: String
+    wartosc: Real
+    dem: Real
+
+Druga funkcja wyświetla zawartość pliku w postaci identyfikatora, współrzędnych punktów oraz atrybutów tabeli
+
+1. Zresetowanie features: jest to generator a nie lista
+2. Pobór ID, geometrii (jako obiektu), atrybutów (jako listy)
+3. Sprawdzenie zgodności typów: jeśli punkt, konwersja na krotkę (tuple) ze
+   współrzędnymi
+4. Przekształcenie geometrii w krotkę
+5. Wypisanie sformatowanej listy.
+
+.. code:: python
+
+    def show_point_layer_content(layer):
+        features = layer.getFeatures()
+        features.rewind() #1
+        for feature in features: 
+            id = feature.id() #2 
+            geom = feature.geometry() 
+            attr = feature.attributes()
+            if geom.wkbType()==QgsWkbTypes.Point: #3 
+                punkt=geom.asPoint().x(),geom.asPoint().y() #4
+                print("ID: {} coords: {} attrs: {}".format(id, punkt, attr)) # 5
+            
+show_point_layer_content(pointLayer)
+
+.. code:: python
+
+   ID: 0 coords: (460910,615321) attrs: [1, u'Przechowo', 680.0, 24.588931613498264]
+   ID: 1 coords: (458171,619337) attrs: [2, u'Dulsk', 440.0, 33.24058956570096]
+   ID: 2 coords: (456368,627208) attrs: [3, u'Grodek', 211.0, 50.73646969265408]
+   ID: 3 coords: (474986,621520) attrs: [4, u'Marzy', 361.0, 21.615658654106987]
+   ID: 4 coords: (474906,623462) attrs: [5, u'Mniszek', 17.0, 37.90913645426432]
+   ID: 5 coords: (469606,617894) attrs: [6, u'Sartowice', 33.0, 31.490962982177734]
+   ID: 6 coords: (457914,632835) attrs: [7, u'Splawia', 47.0, 54.160626305474175]
+   ID: 7 coords: (471361,634163) attrs: [8, u'Piecmorgi', 11.0, 52.72516081068251]
+   ID: 8 coords: (462784,615549) attrs: [9, u'Swiecie', 19.0, 27.470081965128582]
+
+Odczyt pliku rastrowego
+-----------------------
+
+QGIS nie daje możliwości bezpośredniego odczytu zawartości rastra jako numpy array. Pozwala natomiast na odczyt wielu metadanych pliku, jak również użycia rastrów w procedurach geoprzetwarzania
+
+.. code:: python
+
+    rastFile = "class.tif" 
+    rastLayer = QgsRasterLayer(rastFile) #1
+    rastLayer.isValid()
+    
+    
+    print(rastLayer.rasterUnitsPerPixelX(), rastLayer.rasterUnitsPerPixelY())
+    print(rastLayer.width(),rastLayer.height())
+
+
+
+Definiowanie struktury warstw wektorowych
+=========================================
+
+Warstwa wektorowa musi mieć zdefiniowany typ, projekcję oraz pola atrybutowe.
+
+Prosta procedura tworzenia jednego punktu
+-----------------------------------------
+
+Jest to procedura odwrotna do odczytywania danych, którą zaprezentowaliśmy w poprzednim przykładzie. Trzeba utworzyć geometrię i listę atrybutów, połączyć w obiekt feature a następnie listę features dodać do źródła danych (dataProvider)
+
+1. Utworzenie nowej warstwy w pamięci warstwa jest typu punkowego, o
+   kodzie epsg:2180 oraz zawiera 2 pola. Nazwa warstwy (do wyświetlenia)
+   to nowePunkty, a dataProvider to ‘memory’ co oznacza, że warstwa nie
+   zostanie zapisana na dysku a jedyni utworzona w pamięci programu
+2. Tworzymy pojedynczą feature o nazwie feature
+3. Tworzymy punkt ze współrzędnych i dodajemy jako geometrię do feature
+4. dodajemy atrybuty do feature jako listę zgodną ze strukturą pól
+5. Dodajemy feature do dataProvider jako listę features - tu listę
+   jednoelementową
+6. Uaktualniamy zasięg i dodajemy warstwę do obszaru roboczego
+
+.. code:: python
+
+    x,y = (457900,632800)
+    nLayer = QgsVectorLayer('Point?crs=epsg:2180&field=id:int&field=name:string(25)', 'nowePunkty' ,'memory') #1
+    feature = QgsFeature() #2
+    point = QgsPointXY(x,y) #3
+    feature.setGeometry(QgsGeometry.fromPointXY(point))
+    feature.setAttributes([1,"Nazwa punktu"]) #4
+    nLayer.dataProvider().addFeatures([feature]) #5
+    nLayer.updateExtents() #6
+    registry.addMapLayer(nLayer)
+
+Funkcja tworząca pustą warstwę geoprzestrzenną
+----------------------------------------------
+
+Proces budowania warstwy wektorowej pogrupujemy w postaci funkcji. Jako pierwszą utworzymy  funkcję budującą pustą warstwę. Funkcja ma utworzyć warstwę w pamięci, użytkownik musi
+podać jedynie nazwę warstwy oraz opcjonalnie typ danych i kod epsg. Funkcja nie tworzy pól, zostaną dodane w kolejnym kroku.
+
+1. Ustawione na stałe źródło danych jako memory
+2. Możliwe typy danych. Zakładamy że użytkownik może wpisać typ danych
+   błędnie
+3. Qgis stosuje nazwy typów danych z dużej litery. Jest to trochę
+   mylące, użytkownik może wpisać typ z małej litery lub z dużych liter,
+   ale funkcja zamienia ją na wersję właściwą (Title).
+4. Jeżeli typ danych będzie należał do jednego z grupy:
+   ‘point’,‘polyline’,‘polygon’ zostanie utworzona zmienna tekstowa
+   layerSource
+5. Która zostanie użyta do zbudowania pustej warstwy
+6. Jeżeli wszystko się zakończy sukcesem, funkcja zwróci pustą warstwę
+   ale o znanym typie geometrii i odwołaniu geoprzestrzennym
+
+.. code:: python
+
+    def create_vector_layer(name,type='Point', epsg=4326):
+        provider='memory' #1
+        types=('point','polyline','polygon') #2
+        if any(type.lower()==t for t in types): #3,4 
+            layerSource = type.title()+'?crs=epsg:'+str(epsg) #4
+            layer = QgsVectorLayer(layerSource, name ,provider) #5
+        else:
+            print("Unknown data type")
+            return None
+        return layer #6
+
+Dodawanie pól atrybutowych do warstwy
+-------------------------------------
+
+Typy pól w QGIS są definiowane przy pomocy zmiennych całkowitych ukrytych pod tzw. enumeratorami. Jest to klasa która pozwala przypisywać wartości całkowite bardziej rozpozawanym dla człowieka napisom. Clasa QVariant przechowuje różne typy danych pod nazwami zrozumiałymi dla
+człowieka. na przykład QVarinat.Int oznaczony jest kategorią 2.
+
+Sposób definiowania pól powinien być jednak odporny na niejednoznaczności nazw typów zmiennych. Na przykład typ zmiennej tekstowej można zdefniować jako text, string, char lub varchar. Każdy z tych typów oznacza w praktyce coś innego ale prosta tabela atrybutów pliku geoprzestrzennego posługuje się ograniczoną gamą zmiennych: liczbą całkowitą, wartością, datą i tekstem. Z tego powodu funkcja tworząca atrybuty musi się posługiwać możliwe szerokim spektrum użytych nazw przypisanych do ograniczonego typu pól. Do tego celu wykorzystamy słowniki, gdzie kilka kluczy odnosi się do jednej wartości:
+
+Sluży do tego definiowanie słownika przy pomocy metody .fromkeys(), która pozwala na dodawanie więcej niż jednego klucza do każdej wartości. W praktyce to rozwiązanie pozwala ustawić właściwy typ danych niezależnie od nazwy zaproponowanej przez użytkownika.
+
+.. note:: 
+    To rozwiązanie jest często używane w praktyce programistycznej, jako user-friendly.
+
+.. code:: python
+
+    from PyQt5.QtCore import QVariant
+    types={}
+    types.update(dict.fromkeys(['Int','Integer','Long','Byte'],QVariant.Int))
+    types.update(dict.fromkeys(['Real','Double','Double Precision','Numeric'],QVariant.Double))
+    types.update(dict.fromkeys(['Date','Datetime','Time'],QVariant.Date))
+    types.update(dict.fromkeys(['Text','String','Char','Varchar'],QVariant.String))
+    types
+
+Sama funkcja wykonana jest w następujący sposób:
+
+1. Tworzona jest lista typów danych używanych w tworzeniu pliku, co
+   pozwala utworzyć pole poprzez podanie typu bezpośrednio
+2. Funkcja sprawdza czy typ atrybutu znajduje się na liście atrybutów,
+   Jeśli tak pomija sprawdzanie warunków i od razu przechodzi do #8;
+   jeśli nie:
+3. Sprawdza czy jest to łańcuch tekstowy, jeśli nie kończy działanie.
+4. Jeśli jest buduje słownik i
+5. próbuje pobrać na podstawie słownika właściwy typ
+6. Ponieważ sposób wpisania typu może być dowolny (Int, int, INT)
+   ujednolica wszystko do wersji *Title*
+7. Jeżeli nie znajduje zwraca błąd i kończy działanie
+8. Dodawane jest pole do warstwy
+9. Następuje aktualizacja warstwy
+
+.. code:: python
+
+    from PyQt5.QtCore import QVariant
+    
+    def add_attribute(layer,attrName,attrType):
+        attrs = [QVariant.Int, QVariant.Double, QVariant.Date, QVariant.String] #1
+        if attrType not in attrs: #2
+            if type(attrType) is not str: #3
+                print("Unrecognized type, exit")
+                return None
+            types={} #4
+            types.update(dict.fromkeys(['Int','Integer','Long','Byte'],QVariant.Int))
+            types.update(dict.fromkeys(['Real','Double','Double Precision','Numeric'],QVariant.Double))
+            types.update(dict.fromkeys(['Date','Datetime','Time'],QVariant.Date))
+            types.update(dict.fromkeys(['Text','String','Char','Varchar'],QVariant.String))
+            try: #5
+                attrType=types[attrType.title()] #6
+            except: #7
+                print("Unrecognized type, exit")
+                return None
+        layer.dataProvider().addAttributes([QgsField(attrName,attrType)]) #8
+        layer.updateFields() #9
+    
+    pLayer = create_vector_layer("warstwa")
+    
+    add_attribute(pLayer,"ID",'Int')
+    add_attribute(pLayer,"Klasa",'Integer') 
+    add_attribute(pLayer,"Pow",QVariant.Double) 
+    add_attribute(pLayer,"Nazwa",'Text')
+       
+
+Należy zwrócić uwagę, funkcja nie musi zwracać warstwy, gdyż do funkcji w praktyce jest przekazany wskaźnik do obiektu, co powoduje że jego modyfikacja nie jest lokalna (zagadnienie b. zaawansowane).
+
+Na koniec przykłady prawidłowego wywołania funkcji.
+
+.. code:: python
+
+    pLayer = create_vector_layer("warstwa")
+    
+    add_attribute(pLayer,"ID",'Int')
+    add_attribute(pLayer,"Klasa",'Integer') 
+    add_attribute(pLayer,"Pow",QVariant.Double) 
+    add_attribute(pLayer,"Nazwa",'Text')
+
+Tworzenie geometrii
+===================
+
+Proces tworzenia geometrii jest kolejnym krokiem po zdefiniowaniu struktury warstwy i jest różny dla różnych typów danych. Ogólne zasady zostały już omówione przy okazji omawiania biblioteki
+OGR:
+
+1. Dla punktu geometria jest budowana na podstawie pary (tuple)
+   współrzednych
+2. Dla linii lista par współrzędnych
+3. Dla poligonów jest to proces dwuetapowy: utworzenie pierścienia
+   (ring) i utworzenie poligonu z pierścieni
+
+Dla uproszczenia zagadnienia, nie będą wprowadzane metody analizy poprawności danych. Zaproponowane rozwiązania będą “pythonic”, a więc zgodne z zasadami tworzenia kodu w języku Python.
+
+Tworzenie geometrii punktowej (pojedynczy punkt)
+------------------------------------------------
+
+Utworzenie wymaga podania: pary współrzędnych jako pojedynczy tuple. W
+takiej sytuacji należy rozwinąć tuple do dwóch wartości; lub dwóch
+wartości numerycznych, wtedy do funkcji przekazujemy dwie współrzędne.
+Po utworzniu punktu tworzymy geometrię z punktu.
+
+.. code:: python
+
+    def create_point_geometry(x,y=None):
+        point = QgsPointXY(*x) if y is None else QgsPointXY(x,y) 
+        return QgsGeometry.fromPointXY(point)
+    
+    geometry = create_point_geometry(x)
+
+Tworzenie geometrii linijnej (pojedyncza linia)
+-----------------------------------------------
+
+Utworzenie linii wymaga w pierwszej kolejności utworzenia minimum dwóch punktu o zadanych 
+współrzędnych a następnie dodania punktu do listy punktów. W ostatnim kroku tworzymy geometrię z listy punktów. Zaproponowana funkcja może przyjąć współrzędne jako listę wartości x i listę wartości y, co oznacza konieczność przekształcenia jej do listy par funkcją zip. Można również
+przekazać gotową listę par.
+
+.. code:: python
+
+    x=((1,2),(3,4))
+    def create_line_geometry(x,y=None):
+        list_of_points = x if y is None else zip(x,y)
+        line = [QgsPointXY(*point) for point in list_of_points] 
+        return QgsGeometry.fromPolylineXY(line)
+    
+Tworzenie geometrii powierzchniowej (pojedynczy poligon)
+--------------------------------------------------------
+
+Poligon jest to obiekt który składa się z jednego i tylko jednego pierścienia zewnętrznego oraz zera lub więcej pierścieni wewnętrznych tworzących pustki w poligonie (holes). Z tego powodu tworzenie poligonu, podobnie jak w OGR jest procesem dwuetapowym, etap pierwszy obejmuje utworzenie jednego lub więcej pierścieni
+
+.. code:: python
+
+    def create_ring_geometry(x,y = None): 
+        list_of_points = x if y is None else zip(x,y)
+        return [QgsPointXY(*point) for point in list_of_points]
+
+Etap drugi połączenie ich w listę składającą się z poligonu wewnętrznego na pierwszymi miejscu i opcjonalnych pustek na kolejnych miejscach. Ostatnim krokiem jest konwersja listy pierścieni na geometrię. Pierścienie wewnętrzne przekazywane są jako lista atrybutów o nieokreślonej długości. Ponieważ wewnątrz funkcji widziane są jako tuple przed połączeniem muszą zostać zamienione na listę.
+
+.. code:: python
+
+    def create_polygon_geometry(outer_ring,*holes): 
+        polygon=[outer]+list(holes)
+        return QgsGeometry.fromPolygonXY(polygon)
+
+
+Atrybuty i budowanie features
+=============================
+
+Trzeci krok, po utworzeniu geometrii to połączanie geometrii i atrybutów w feature. Użyjemy do tego funkcji tworzącej fature oraz fature połączymy w listę. Atrybuty przekazujemy jako listę nazwanych atrybutów (rozwijaną wewnętrznie do słownika). Pozwala to przekazać tylko te atrybuty w formie nazwanej, które chcemy dodać. Pola dla których nie dodano atrybutów pozostaną jako puste (NULL)
+
+.. code:: python
+
+    def create_feature(layer,geometry,**attributes):
+        feature = QgsFeature()
+        feature.setGeometry(geometry)
+        fields=[field.name() for field in layer.fields()] #1
+        attrValues=[] #2
+        for field in fields:
+            try: # bo wyjątek jak nie to pole
+                value=attributes[field]
+            except:
+                value=None #3
+            attrValues.append(value)
+        feature.setAttributes(attrValues) #4
+        return feature
+
+Wypełnianie pliku treścią
+=========================
+
+Ostatnim krokiem po utworzeniu feature jest dodanie feature do warstwy i aktualizacja zasięgu. Pozwala to nam na podsumowanie całego procesu tworzenia warstwy, przy założeniu, że dane już posiadamy. Będzie to warstwa zawierająca poligon. Cały proces obejmuje następujące kroki:
+
+1. Zdefiniowanie warstwy
+2. Dodanie kolejnych atrybutów
+3. Zdefiniowanie geometrii
+4. Utworzenie pojedynczej feature
+5. Dodanie features i zaktualizowanie warstwy
+
+.. code:: python
+
+   # dane
+   xo=[10,20,20,10]
+   yo=[10,10,0,0]
+   xh1=[17,19,19,17]
+   yh1=[9,9,7,7]
+   xh2=[14,16,16,14]
+   yh2=[6,6,4,4]
+
+    pLayer =  create_vector_layer("name",type="Polygon", epsg=2180) #1
+    add_attribute(pLayer,"ID","Integer") #2
+    add_attribute(pLayer,"area","Numeric")
+    add_attribute(pLayer,"name","String")
+    
+     # od tego miejsca proces może być częścią pętli, jeżeli mamy więcej obiektów
+    outer = create_ring_geometry(xo,yo) #3
+    h1 = create_ring_geometry(xh1,yh1)
+    h2 = create_ring_geometry(xh2,yh2)
+    polygon = create_polygon_geometry(outer,h1,h2)
+    feature = create_feature(pLayer,polygon,ID=1,name="Srodka") #4
+    
+    #ostatni etap, poza pętlą
+    pLayer.dataProvider().addFeature(feature) #5
+    pLayer.updateExtents() 
+    registry.addMapLayer(pLayer)
+
+
+Tworzenie i zapis pliku
+=======================
+
+Jeżeli chcemy zapisać już utworzoną warstwę należy utworzyć obiekt QgsVectorFileWriter i użyć metodę writeAsVectorFormat. Argumentami metody są warstwa, nazwa tworzonego pliku, kodowanie i użyty sterownik zapisu. Domyślnie jest to GeoPackage, dlatego jawnie wywołamy "ESRI Shapefile"
+
+.. code:: python
+
+    write = QgsVectorFileWriter.writeAsVectorFormat(pLayer, "poligonik", "UTF-8",driverName="ESRI Shapefile")
+
+Zapis przetwarzania bezpośrednio do pliku
+-----------------------------------------
+
+W sytuacji, gdy chcemy pominąć etap tworzenia warstwy wewnątrz środowiska QGIS możemy utworzyć obiekt - źródło danych **QgsVectorFileWriter** i zapisywać wyniki geoprzetwarzania bezpośrednio do źródła danych. W tym celu musimy utworzyć pola - jako specjalną listę pól przy pomocy funkcji **QgsFields()** #A i każde kolejne pole dołączyć do tej listy #B. W kolejnym kroku #C, tworzymy CoordinateReferenceSystem, używając systemu EPSG do zdefiniowania projekcji #D. W ostatnim kroku tworzymy obiekt writer definiując:
+
+.. code:: python
+
+    fields = QgsFields() #A
+    fields.append(QgsField('ID',QVariant.Int)) #B
+    fields.append(QgsField('area',QVariant.Double))
+    fields.append(QgsField('name',QVariant.String)) #C
+    
+    crs = QgsCoordinateReferenceSystem(2180,QgsCoordinateReferenceSystem.EpsgCrsId) #D
+    crs.isValid() 
+
+
+1. nazwę źródła danych 
+2. stronę kodową bazy danych
+3. listę pól
+4. typ geometrii
+5. referencję geoprzestrzenną
+6. opcjonalnie sterownik
+
+Po wykonaniu tych czynności możemy każdą kolejną feature dodawać bezpośrednio do obiektu *writer*. Ostatnim krokiem musi być usunięcie obiektu by zakończyć jego edycję i umożliwić załadowanie do środowiska QGIS.
+
+.. code:: python
+
+    writer = QgsVectorFileWriter('poligonink2.shp', \ #1
+            'UTF-8', \ #2
+            fields, \ #3
+            QgsWkbTypes.Polygon, \ #4
+            crs, \ #5
+            driverName="ESRI Shapefile") #5
+
+
+    # ta linia może być w pętli
+    writer.addFeature(feature) 
+    del writer

@@ -1,0 +1,200 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Programowanie geoinformacyjne 3 &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Podstawy przetwarzania danych w QGIS" href="qgis1.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis1.html" title="Podstawy przetwarzania danych w QGIS"
+             accesskey="N">dalej</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="programowanie-geoinformacyjne-3">
+<h1>Programowanie geoinformacyjne 3<a class="headerlink" href="#programowanie-geoinformacyjne-3" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<p>Wykorzystanie Pythona do tworzenia procedur, skryptów i wtyczek środowiska QGIS.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qgis1.html">Podstawy przetwarzania danych w QGIS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#odczyt-pliku-wektorowego-z-dysku">Odczyt pliku wektorowego z dysku</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#dostep-do-pliku">Dostęp do pliku</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#dostep-do-pliku-z-aktywnego-obszaru-roboczego">Dostęp do pliku z aktywnego obszaru roboczego</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#odczyt-zawartosci-pliku">Odczyt zawartości pliku</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#odczyt-pliku-rastrowego">Odczyt pliku rastrowego</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#definiowanie-struktury-warstw-wektorowych">Definiowanie struktury warstw wektorowych</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#prosta-procedura-tworzenia-jednego-punktu">Prosta procedura tworzenia jednego punktu</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#funkcja-tworzaca-pusta-warstwe-geoprzestrzenna">Funkcja tworząca pustą warstwę geoprzestrzenną</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#dodawanie-pol-atrybutowych-do-warstwy">Dodawanie pól atrybutowych do warstwy</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#tworzenie-geometrii">Tworzenie geometrii</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#tworzenie-geometrii-punktowej-pojedynczy-punkt">Tworzenie geometrii punktowej (pojedynczy punkt)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#tworzenie-geometrii-linijnej-pojedyncza-linia">Tworzenie geometrii linijnej (pojedyncza linia)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#tworzenie-geometrii-powierzchniowej-pojedynczy-poligon">Tworzenie geometrii powierzchniowej (pojedynczy poligon)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#atrybuty-i-budowanie-features">Atrybuty i budowanie features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#wypelnianie-pliku-trescia">Wypełnianie pliku treścią</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis1.html#tworzenie-i-zapis-pliku">Tworzenie i zapis pliku</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis1.html#zapis-przetwarzania-bezposrednio-do-pliku">Zapis przetwarzania bezpośrednio do pliku</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis2.html">Analizy geoprzestrzenne w Qgis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis2.html#losowe-punkty-wzdluz-linii">Losowe punkty wzdłuż linii</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis2.html#linie-laczace-punkty-z-dwoch-warstw">Linie łączące punkty z dwóch warstw</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis2.html#utworzenie-poligonu-z-istniejacych-punktow">Utworzenie poligonu z istniejących punktów</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis2.html#probkowanie-rastra">Próbkowanie rastra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis2.html#tworzenie-map">Tworzenie map</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis3.html">Skrypty geoprzetwarzania</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis3.html#katalog-wtyczki">Katalog wtyczki</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis3.html#struktura-pliku-skryptu-elementy-wspolne">Struktura pliku skryptu - elementy wspólne</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis3.html#funkcja-inicjujaca-algorytm">Funkcja inicjująca algorytm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis3.html#funkcja-pomocnicza-przetwarzajaca-dane-wejsciowe">Funkcja pomocnicza przetwarzająca dane wejściowe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis3.html#glowna-funkcja-przetwarzajaca">Główna funkcja przetwarzająca</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis4.html">Samodzielnie budowany plugin - wersja minimum</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis4.html#struktura-plikow-wtyczki">Struktura plików wtyczki</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#katalog-wtyczki">Katalog wtyczki</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#plik-init-py">Plik __init__.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#plik-form-py">Plik form.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#plik-custom-py">Plik custom.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#ikona-oraz-plik-resources-qrc">ikona oraz plik resources.qrc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis4.html#plik-metadata-txt">Plik metadata.txt</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis5a.html">Framework pyQt - budowanie interace cz.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis5a.html#definiowanie-ram-aplikacji">Definiowanie ram aplikacji</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis5a.html#widget-standardowy-cancel-ok">Widget Standardowy Cancel|OK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis5a.html#prosty-layout">Prosty layout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis5a.html#rozbudowa-layout-i-kolejne-widgety">Rozbudowa layout i kolejne widgety</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis5a.html#dodanie-interakcji">Dodanie interakcji</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis5a.html#interakcja-sygnal-uchwyt-signal-slot">Interakcja sygnał-uchwyt (SIGNAL-SLOT)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis5a.html#zbudowanie-wlasnych-funkcji-slotowych-i-interakcja-miedzy-obiektami">Zbudowanie własnych funkcji slotowych i interakcja między obiektami</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis5b.html">Framework pyQt - budowanie interace cz.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis5b.html#tworzenie-glownej-formatki">Tworzenie głównej formatki</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis5b.html#wyswietlenie-calej-formatki">wyświetlenie całej formatki</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qgis6.html">Tworzenie własnego pluginu</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qgis6.html#plik-interface">Plik interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qgis6.html#wlasciwy-algorytm">Właściwy algorytm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#czesc-ogolna-definicja-klasy-i-funkcje-standardowe">Część ogólna: definicja klasy i funkcje standardowe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#funkcja-run">Funkcja run</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#funkcja-create-layer-list">Funkcja create_layer_list</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#funkcja-parse-input">Funkcja parse_input</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qgis6.html#funkcje-pomocnicze">Funkcje pomocnicze</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#funkcja-get-extent-form-file">Funkcja __get_extent_form_file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qgis6.html#funkcja-get-extent-from-active-layers">Funkcja __get_extent_from_active_layers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qgis6.html#funkcja-glowna-create-point-file">Funkcja główna: create_point_file</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Indeks</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Indeks modułów</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Wyszukiwanie</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis1.html"
+                        title="następny rozdział">Podstawy przetwarzania danych w QGIS</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis1.html" title="Podstawy przetwarzania danych w QGIS"
+             >dalej</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

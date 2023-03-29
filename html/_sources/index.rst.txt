@@ -1,0 +1,24 @@
+.. qgis_plugin documentation master file, created by
+   sphinx-quickstart on Thu Mar 14 14:39:20 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Programowanie geoinformacyjne 3
+===============================
+
+Wykorzystanie Pythona do tworzenia procedur, skryptów i wtyczek środowiska QGIS.
+
+.. toctree::
+   qgis1
+   qgis2
+   qgis3
+   qgis4
+   qgis5a
+   qgis5b
+   qgis6
+
+    maxdepth
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

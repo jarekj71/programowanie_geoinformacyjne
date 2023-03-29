@@ -1,0 +1,471 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Analizy geoprzestrzenne w Qgis &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Samodzielnie budowany plugin - wersja minimum" href="qgis4.html" />
+    <link rel="prev" title="Podstawy przetwarzania danych w QGIS" href="qgis1.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis4.html" title="Samodzielnie budowany plugin - wersja minimum"
+             accesskey="N">dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis1.html" title="Podstawy przetwarzania danych w QGIS"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="analizy-geoprzestrzenne-w-qgis">
+<h1>Analizy geoprzestrzenne w Qgis<a class="headerlink" href="#analizy-geoprzestrzenne-w-qgis" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>Przetwarzanie danych geoprzestrzennych z wykorzystaniem API QGis jest w zasadzie
+ograniczone jedynie do danych wektorowych, w przypadku danych rastrowych jesteśmy ograniczeni jedynie do operacji na całych zbiorach danych takich jak kalkulator rastrów czy operacje przygotowywanie map. Wynika to z faktu że Python jest zbyt powolnym narzędziem do przetwarzania
+danych rastrowych i z tego powodu autorzy prawdopodobnie nie zdecydowali się na opracowanie API dla rastrów.</p>
+<p>W tej części zostaną omówione, przykłady wykorzystujące API QGis do rozwiązywania problemów analiz geoprzestrzennych: dla danych punktowych, liniowych i poligonu, współpracy z rastrem oraz tworzenia map wynikowych.</p>
+<div class="section" id="losowe-punkty-wzdluz-linii">
+<span id="random-points-label"></span><h2>Losowe punkty wzdłuż linii<a class="headerlink" href="#losowe-punkty-wzdluz-linii" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Celem skryptu jest wygenerowanie zestawu punktów losowych, które zostaną rozłożone wzdłuż linii w odległości mniejszej niż zadany bufor. W zadaniu pomijamy sprawdzanie ile jest linii w warstwie wejściowej. Zakładamy, że jedna. Pomijamy odczyt i zapis plików z dysku, pobieramy dane z obszaru roboczego i wynik umieszczamy też w obszarze roboczym. Atrybutami tworzonego upnktu jest jego ID i odległość. Zapisujemy ID dla każdego losowanego punktu, a więc sekwencja nie będzie ciągła.</p>
+<p>Zadanie ma jeden: jak generować punkty losowe względem nieregularnego kształtu? Zadanie takie realizuje się zwykle generując pojedyncze punkty i testując czy spełnia kryterium odległości względem obiektu. Jeżeli spełnia, punkt się pozostawia, jeżeli nie pomija, generując następny.
+Oznacza to, że liczba generowanych punktów nie jest z góry określona. Aby ograniczyć liczbę generowanych punktów należy wskazać pewien obszar prostokątny , poza którym generowanie punktu nie ma sensu. Takim obszarem jest prostokąt otaczający nasz nieregularny kształt <span class="math notranslate nohighlight">\(\pm\)</span> bufor. Odległość pomiędzy geometriami będzie wyliczana przy pomocy metody <em>distance</em> (pochodzącej z GEOS)</p>
+<p>W celu realizacji skryptu należy:</p>
+<ol class="arabic simple">
+<li>Pobrać linię z obszaru roboczego</li>
+<li>Pobrać jej zasięg</li>
+<li>Wyznaczyć na podstawie zasięgu min i max możliwe wartości dla x i y</li>
+<li>Pobrać geometrię linii, uwaga musi to być unikalna nazwa, zarówno dla
+feature jak i geometrii</li>
+<li>Pętle wykonujemy aż uzyskamy oczekiwaną liczbę plików (npoints)</li>
+<li>Tworzymy parę losowych wartości x,y i zamieniamy w QGisGeometry</li>
+<li>Obliczamy odległość</li>
+<li>Jeżeli mniejsza niż krytyczna tworzymy feature, dodajemy geometrię
+aktualny ID iteracji i dodajemy do listy features.</li>
+<li>Dodajemy warstwę do obszaru roboczego</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="n">maxdist</span> <span class="o">=</span> <span class="mi">100000</span> <span class="c1"># zmienne</span>
+<span class="n">npoints</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+<span class="n">linie</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">mapLayers</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<span class="n">linia</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">linie</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#1 słownik, te, sprawy</span>
+
+<span class="n">extent</span> <span class="o">=</span> <span class="n">linia</span><span class="o">.</span><span class="n">extent</span><span class="p">()</span> <span class="c1">#2</span>
+<span class="n">epsg</span> <span class="o">=</span> <span class="n">linia</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">()</span>
+
+
+<span class="n">xmin</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">xMinimum</span><span class="p">()</span> <span class="o">-</span> <span class="n">maxdist</span> <span class="c1">#3</span>
+<span class="n">xmax</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">xMaximum</span><span class="p">()</span> <span class="o">+</span> <span class="n">maxdist</span>
+<span class="n">ymin</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">yMinimum</span><span class="p">()</span> <span class="o">-</span> <span class="n">maxdist</span>
+<span class="n">ymax</span> <span class="o">=</span> <span class="n">extent</span><span class="o">.</span><span class="n">yMaximum</span><span class="p">()</span> <span class="o">+</span> <span class="n">maxdist</span>
+
+<span class="n">line_feature</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">linia</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">())</span> <span class="c1">#4</span>
+<span class="n">linia_geom</span> <span class="o">=</span> <span class="n">line_feature</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span> <span class="c1"># wskaźniki!!!</span>
+
+
+<span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="nb">id</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">npoints</span><span class="p">:</span> <span class="c1">#5</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span><span class="p">)</span> <span class="c1">#6</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span><span class="p">)</span>
+    <span class="n">point</span> <span class="o">=</span> <span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPointXY</span><span class="p">(</span><span class="n">QgsPointXY</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">linia_geom</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">point</span><span class="p">)</span> <span class="c1">#7</span>
+    <span class="k">if</span> <span class="n">distance</span> <span class="o">&lt;</span> <span class="n">maxdist</span><span class="p">:</span> <span class="c1">#8</span>
+        <span class="n">feature</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span>
+        <span class="n">feature</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="n">feature</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="nb">id</span><span class="p">,</span><span class="n">distance</span><span class="p">])</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+    <span class="nb">id</span><span class="o">+=</span><span class="mi">1</span> <span class="c1">#</span>
+
+<span class="n">layerdef</span> <span class="o">=</span> <span class="s1">&#39;Point?crs=epsg:2180&amp;field=id:int&amp;field=dist:float&#39;</span> <span class="c1">#9</span>
+<span class="n">pointLayer</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="n">layerdef</span><span class="p">,</span> <span class="s1">&#39;nowePunkty&#39;</span> <span class="p">,</span><span class="s1">&#39;memory&#39;</span><span class="p">)</span>
+<span class="n">pointLayer</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addFeatures</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+<span class="n">pointLayer</span><span class="o">.</span><span class="n">updateExtents</span><span class="p">()</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">pointLayer</span><span class="p">)</span> <span class="c1">#9</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="linie-laczace-punkty-z-dwoch-warstw">
+<h2>Linie łączące punkty z dwóch warstw<a class="headerlink" href="#linie-laczace-punkty-z-dwoch-warstw" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Zadaniem tego skryptu jest utworzenie linii łączących punkty z jednej warstwy (liczniesze, source) z punktami z innej warstwy, które są najbliższe danemu punktowi (mało, targets). Przykładem mogą być punkty przypisania magazynów do sklepów. Dla każdego sklepu (dużo) jako jego magazyn wskazujemy najbliższą mu hurtownię (mało).</p>
+<p>Mechanizm wyszukiwania obiektów wymaga sprawdzenia dla każdego punktu z source odległości do wszystkich targets i wybranie tego który leży najbliżej. Do wykonania zadania zostaną wykorzystane dwie pętle: zewnętrzna będzie sprawdzać każdy punkt oraz wewnętrzna będzie sprawdzać odległość wybranego punktu do każdego target.</p>
+<p>Skrypt wykorzystuje tym razem bezpośredni zapis wyników do pliku (writer), bez tworzenia całej warstwy w pamięci.</p>
+<p>Skrypt działa następująco:</p>
+<ol class="arabic simple">
+<li>Do prawidłowego działania wymagany jest typ danych punktowy i
+zgodność georeferencji</li>
+<li>Lista pól przypisanych do linii: id source, id targer, długość linii
+(distance)</li>
+<li>Tworzymy obiekt writer, do którego będziemy zapisywać poszczególne
+linie, obiekt wymaga podania encoding i crs</li>
+<li>Pętla zewnętrzna, dla każdego source<ol class="arabic">
+<li>Pobranie geometrii,</li>
+<li>Ustawienie zmiennej pomocniczej przechowującej aktualną odległość
+do najbliższego punktu na b. dużą wartość</li>
+<li>Ustawienie wskaźnika do obiektu docelowego na <strong>None</strong></li>
+<li>Zresetowanie features z targets</li>
+</ol>
+</li>
+<li>Pętla wewnętrzna, dla każdego target<ol class="arabic">
+<li>pobranie geometrii</li>
+<li>obliczenie odległości</li>
+<li>Jeżeli mniejsza niż aktualna najkr. odległość to: (zawsze prawda
+dla 1 target)<ol class="arabic" start="4">
+<li>Przypisz current_target</li>
+<li>Zmodyfikuj (skróć odlełgość)</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>Pętla zewnętrzna: Utwórz geomterię linii, jest jakiś target</li>
+<li>utrwórz feature</li>
+<li>Dodaj feature do writer. Tylko jedna feature do writer nie można
+dodać listy features.</li>
+<li>Po zakończeniu pętli zamknij writer i dodaj warstwę do obszaru
+roboczego</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;hubs.shp&quot;</span><span class="p">)</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;centers.shp&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">wkbType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Point</span> <span class="ow">or</span> <span class="n">target</span><span class="o">.</span><span class="n">wkbType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Point</span><span class="p">:</span> <span class="c1">#1</span>
+    <span class="n">exit</span>
+<span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">()</span> <span class="o">!=</span> <span class="n">target</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span><span class="o">.</span><span class="n">authid</span><span class="p">():</span>
+    <span class="n">exit</span>
+
+<span class="n">encoding</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">encoding</span><span class="p">()</span>
+
+<span class="n">crs</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span>
+
+<span class="n">fields</span> <span class="o">=</span> <span class="n">QgsFields</span><span class="p">()</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;srcid&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;trgid&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span> <span class="c1">#2</span>
+
+<span class="n">writer</span> <span class="o">=</span> <span class="n">QgsVectorFileWriter</span><span class="p">(</span><span class="s1">&#39;conns.shp&#39;</span><span class="p">,</span><span class="n">encoding</span><span class="p">,</span><span class="n">fields</span><span class="p">,</span><span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">LineString</span><span class="p">,</span><span class="n">crs</span><span class="p">,</span><span class="n">driverName</span><span class="o">=</span><span class="s2">&quot;ESRI Shapefile&quot;</span><span class="p">)</span> <span class="c1">#3</span>
+
+<span class="n">sources</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">src</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span> <span class="c1">#4</span>
+    <span class="n">src_geom</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span> <span class="c1">#A</span>
+    <span class="n">shortest_distance</span><span class="o">=</span><span class="mf">1e20</span>  <span class="c1">#B</span>
+    <span class="n">cur_trg</span><span class="o">=</span><span class="kc">None</span> <span class="c1">#C</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">target</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span> <span class="c1">#D</span>
+    <span class="k">for</span> <span class="n">trg</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span> <span class="c1">#5</span>
+        <span class="n">trg_geom</span><span class="o">=</span><span class="n">trg</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span> <span class="c1">#A</span>
+        <span class="n">cur_distance</span><span class="o">=</span><span class="n">src_geom</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">trg_geom</span><span class="p">)</span> <span class="c1">#B</span>
+        <span class="k">if</span> <span class="n">cur_distance</span><span class="o">&lt;</span><span class="n">shortest_distance</span><span class="p">:</span> <span class="c1">#C</span>
+            <span class="n">shortest_distance</span><span class="o">=</span><span class="n">cur_distance</span>  <span class="c1">#a</span>
+            <span class="n">cur_trg</span><span class="o">=</span><span class="n">trg</span> <span class="c1">#b</span>
+    <span class="n">line</span><span class="o">=</span><span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPolyline</span><span class="p">([</span><span class="n">QgsPoint</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()),</span><span class="n">QgsPoint</span><span class="p">(</span><span class="n">cur_trg</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">asPoint</span><span class="p">())])</span>  <span class="c1">#6</span>
+    <span class="n">feature</span> <span class="o">=</span> <span class="n">QgsFeature</span><span class="p">()</span> <span class="c1">#7</span>
+    <span class="n">feature</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">feature</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="n">src</span><span class="o">.</span><span class="n">id</span><span class="p">(),</span><span class="n">trg</span><span class="o">.</span><span class="n">id</span><span class="p">(),</span><span class="n">line</span><span class="o">.</span><span class="n">length</span><span class="p">()])</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">addFeature</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span> <span class="c1">#8</span>
+
+<span class="k">del</span> <span class="n">writer</span> <span class="c1">#9</span>
+<span class="n">line_layer</span><span class="o">=</span><span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;conns.shp&quot;</span><span class="p">)</span>
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">line_layer</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="utworzenie-poligonu-z-istniejacych-punktow">
+<h2>Utworzenie poligonu z istniejących punktów<a class="headerlink" href="#utworzenie-poligonu-z-istniejacych-punktow" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>Zadanie, pomimo że krótkie jest dość trudne do zrozumienia i wymaga wcześniejszego zaproponowania rozwiązania na poziomie własności geometrii. Celem zadania jest połączenie wszystkich punktów w poligon w taki sposób aby utworzyć zamkniętą powierzchnię. Utworzenie poligonu wymaga uporządkowania punktów po okręgu. Najprostszym rozwiązaniem porządkującym jest uporządkowanie na podstawie kątów względem geometrycznego środka punktów.</p>
+<p>Skrypt działa w następujący sposób:</p>
+<ol class="arabic simple">
+<li>po pobraniu features przekształca je na numpy.array</li>
+<li>Wyznacza środek geometryczny punktów jako średnią wartość dla obu
+kolumn wzdłuż zerowego wymiaru np.array</li>
+<li>Odejmuje środek od całej macierzy. Współrzędne macierzy są tera
+względne względem 0,0</li>
+<li>Obliczenie kątów (w radianach)</li>
+<li>Wyznaczenie porządku wg wartości kątów. (podobnie jak w R)</li>
+<li>Utworzenie listy punktów (par współrzędnych) uporządkowanych względem
+wartości kątów <code class="docutils literal notranslate"><span class="pre">points[order,:]</span></code></li>
+<li>Utworzenie feature</li>
+<li>Utworzenie warstwy</li>
+<li>Dodanie feature do warstwy i zakończenie edycji</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+
+<span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;points_to_poly.shp&quot;</span><span class="p">)</span>
+<span class="n">source</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">wkbType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Point</span><span class="p">:</span>
+    <span class="n">exit</span>
+<span class="n">encoding</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">encoding</span><span class="p">()</span>
+<span class="n">crs</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">crs</span><span class="p">()</span>
+
+<span class="n">sources</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+<span class="n">points</span><span class="o">=</span><span class="p">[</span><span class="n">src</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()</span> <span class="k">for</span> <span class="n">src</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">]</span>
+
+<span class="n">points</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">center</span><span class="o">=</span><span class="n">points</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1">#2</span>
+<span class="n">p</span><span class="o">=</span><span class="n">points</span><span class="o">-</span><span class="n">center</span> <span class="c1">#3</span>
+<span class="n">atans</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">p</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">p</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span> <span class="c1">#4</span>
+<span class="n">order</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">atans</span><span class="p">)</span> <span class="c1">#5</span>
+
+<span class="n">ring</span><span class="o">=</span><span class="p">[</span><span class="n">QgsPointXY</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">[</span><span class="n">order</span><span class="p">,:]]</span> <span class="c1">#6</span>
+<span class="n">polygon</span><span class="o">=</span><span class="n">QgsFeature</span><span class="p">()</span> <span class="c1">#7</span>
+<span class="n">polygon</span><span class="o">.</span><span class="n">setGeometry</span><span class="p">(</span><span class="n">QgsGeometry</span><span class="o">.</span><span class="n">fromPolygonXY</span><span class="p">([</span><span class="n">ring</span><span class="p">]))</span>
+<span class="n">polygon</span><span class="o">.</span><span class="n">setAttributes</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+
+
+<span class="n">fields</span> <span class="o">=</span> <span class="n">QgsFields</span><span class="p">()</span>
+<span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QgsField</span><span class="p">(</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Int</span><span class="p">))</span>
+
+<span class="n">writer</span> <span class="o">=</span> <span class="n">QgsVectorFileWriter</span><span class="p">(</span><span class="s1">&#39;poly_from_points.shp&#39;</span><span class="p">,</span><span class="n">encoding</span><span class="p">,</span><span class="n">fields</span><span class="p">,</span><span class="n">QgsWkbTypes</span><span class="o">.</span><span class="n">Polygon</span><span class="p">,</span><span class="n">crs</span><span class="p">,</span><span class="n">driverName</span><span class="o">=</span><span class="s2">&quot;ESRI Shapefile&quot;</span><span class="p">)</span> <span class="c1">#3</span>
+<span class="n">writer</span><span class="o">.</span><span class="n">addFeature</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="c1">#9</span>
+<span class="k">del</span> <span class="n">writer</span>
+<span class="n">poly</span> <span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s1">&#39;poly_from_points.shp&#39;</span><span class="p">)</span>
+<span class="n">poly</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="probkowanie-rastra">
+<h2>Próbkowanie rastra<a class="headerlink" href="#probkowanie-rastra" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>W powyższym przykładzie nie sprawdzamy, zgodności crs i zasięgu zostało to już omówione w poprzednich przykładach. Celem skryptu jest opróbowanie rastra w miejscu występowania punktów. Próbkowanie odbywa się bez konieczności przeliczania współrzędnych punktu na wiersz i komórkę rastra.</p>
+<p>Aby wykonać proste próbkowanie należy:</p>
+<ol class="arabic simple">
+<li>Otworzyć dostęp do pliku wektorowego i rastrowego</li>
+<li>Dodać kolumnę i zaktualizować warstwę</li>
+<li>Określić index dodanego pola (1 - liczba pól w warstwie)</li>
+<li>Włączyć edycję warstwy</li>
+<li>Dla każdego punktu pobrać geometrię</li>
+<li>Użyć geometrii do pobrania wartości z rastra</li>
+<li>Zaktualizować nowo dodaną kolumnę wartością pobraną z rastra</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+
+<span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span>
+
+<span class="n">rastFile</span><span class="o">=</span> <span class="n">QgsRasterLayer</span><span class="p">(</span><span class="s2">&quot;dem.tif&quot;</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">bands</span> <span class="o">=</span> <span class="n">rastFile</span><span class="o">.</span><span class="n">bandCount</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">bands</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">exit</span>
+<span class="n">pointFile</span><span class="o">=</span> <span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;points.shp&quot;</span><span class="p">)</span>
+<span class="n">rastFile</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+<span class="n">pointFile</span><span class="o">.</span><span class="n">isValid</span><span class="p">()</span>
+
+<span class="n">base</span><span class="o">=</span><span class="n">QFileInfo</span><span class="p">(</span><span class="s2">&quot;dem.tif&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">baseName</span><span class="p">()</span>
+
+<span class="n">pointFile</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">addAttributes</span><span class="p">([</span><span class="n">QgsField</span><span class="p">(</span><span class="n">base</span><span class="p">,</span><span class="n">QVariant</span><span class="o">.</span><span class="n">Double</span><span class="p">)])</span> <span class="c1">#2</span>
+<span class="n">pointFile</span><span class="o">.</span><span class="n">updateFields</span><span class="p">()</span>
+<span class="n">fields</span><span class="o">=</span><span class="n">pointFile</span><span class="o">.</span><span class="n">fields</span><span class="p">()</span><span class="o">.</span><span class="n">toList</span><span class="p">()</span> <span class="c1">#3</span>
+<span class="n">last_field_id</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+
+<span class="n">pointFile</span><span class="o">.</span><span class="n">startEditing</span><span class="p">()</span>
+<span class="n">features</span><span class="o">=</span><span class="n">pointFile</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
+    <span class="n">point</span><span class="o">=</span><span class="n">feature</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()</span> <span class="c1">#5</span>
+    <span class="n">value</span><span class="o">=</span><span class="n">rastFile</span><span class="o">.</span><span class="n">dataProvider</span><span class="p">()</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">point</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>  <span class="c1">#6</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">results</span><span class="p">()[</span><span class="n">bands</span><span class="p">]</span>
+    <span class="n">pointFile</span><span class="o">.</span><span class="n">changeAttributeValue</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">id</span><span class="p">(),</span><span class="n">last_field_id</span><span class="p">,</span><span class="n">value</span><span class="p">)</span> <span class="c1">#7</span>
+    <span class="n">pointFile</span><span class="o">.</span><span class="n">commitChanges</span><span class="p">()</span>
+
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayer</span><span class="p">(</span><span class="n">pointFile</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tworzenie-map">
+<h2>Tworzenie map<a class="headerlink" href="#tworzenie-map" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<p>API QGIS pozwala również na wykonywanie operacji, których wynikiem są pliki graficzne zawierające efekt renderowania (tj. wizualizacji graficznej) danych geoprzestrzennych. W tym przykładzie użyjemy mapy rastrowej i punktów do przekształcenia danych rastrowych w zbiór mapek w formacie png powstałych dookoła miejsc wyznaczonych lokalizacją punktów</p>
+<p>Aby wykonać taką pracę należy</p>
+<ol class="arabic">
+<li><p class="first">Otworzyć plik rastrowy i wektorowy</p>
+</li>
+<li><p class="first">dodać pliki do obszaru roboczego i pobrać ich klucze
+(identyfikatory)</p>
+</li>
+<li><p class="first">Określić rozmiar obszaru w komórkach a następnie przeliczyć rozmiar
+w komórkach na jednostki mapy. Podzielić przez 2, gdyż punkt jest w
+środku a zasięg wyznaczamy z każdej strony. Zakładamy że obszar
+cięcia to kwadrat.</p>
+</li>
+<li><p class="first">Definiujemy kolor tła dla tworzonej mapy</p>
+</li>
+<li><p class="first">Tworzymy obiekt <em>options</em> do którego będziemy zapisywać wszystkie ustawienia tworzonych map:</p>
+</li>
+<li><p class="first">… warstwy, kolor tła, rozmiar</p>
+</li>
+<li><p class="first">następnie w pętli, dla każdego punktu:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Pobieramy współrzędne punktu jako środka obrazu</li>
+<li>Dodajemy bufor z każdej strony - połowa wielkości obrazka</li>
+<li>Dodajemy extent do <em>options</em></li>
+<li>Tworzymy renderer. Tu wybieramy opcję sequential, bez zrównoleglania procesu</li>
+<li>Rozpoczynamy rendering. Jest to nowy proces</li>
+<li>Czekamy do jego zakończenia</li>
+<li>Generujemy nazwę pliku</li>
+<li>Tworzymy obiekt image, do którego zapisujemy wynik renderingu</li>
+<li>Zapisujemy obiekt</li>
+</ol>
+</div></blockquote>
+</li>
+</ol>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtGui</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">path</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+<span class="c1">#path</span>
+
+<span class="n">output</span><span class="o">=</span><span class="s2">&quot;output&quot;</span>
+<span class="nb">type</span><span class="o">=</span><span class="s2">&quot;png&quot;</span>
+<span class="n">player</span><span class="o">=</span><span class="n">QgsVectorLayer</span><span class="p">(</span><span class="s2">&quot;punkt1.shp&quot;</span><span class="p">,</span><span class="s2">&quot;punkty&quot;</span><span class="p">)</span> <span class="c1">#1</span>
+<span class="n">rlayer</span><span class="o">=</span><span class="n">QgsRasterLayer</span><span class="p">(</span><span class="s2">&quot;class.tif&quot;</span><span class="p">,</span><span class="s2">&quot;raster&quot;</span><span class="p">)</span>
+
+<span class="n">registry</span> <span class="o">=</span> <span class="n">QgsProject</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span> <span class="c1">#2</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">addMapLayers</span><span class="p">([</span><span class="n">player</span><span class="p">,</span><span class="n">rlayer</span><span class="p">])</span>
+<span class="n">registry</span><span class="o">.</span><span class="n">mapLayers</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="c1">#2</span>
+
+<span class="n">size</span><span class="o">=</span><span class="mi">64</span> <span class="c1">#3</span>
+<span class="n">xs</span><span class="o">=</span><span class="n">rlayer</span><span class="o">.</span><span class="n">rasterUnitsPerPixelX</span><span class="p">()</span><span class="o">*</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span>
+<span class="n">ys</span><span class="o">=</span><span class="n">rlayer</span><span class="o">.</span><span class="n">rasterUnitsPerPixelY</span><span class="p">()</span><span class="o">*</span><span class="n">size</span><span class="o">/</span><span class="mi">2</span>
+<span class="n">color</span><span class="o">=</span><span class="n">QColor</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">)</span> <span class="c1">#4</span>
+
+<span class="n">options</span> <span class="o">=</span> <span class="n">QgsMapSettings</span><span class="p">()</span> <span class="c1">#5</span>
+<span class="n">options</span><span class="o">.</span><span class="n">setLayers</span><span class="p">([</span><span class="n">rlayer</span><span class="p">])</span> <span class="c1">#6</span>
+<span class="n">options</span><span class="o">.</span><span class="n">setBackgroundColor</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="c1">#6</span>
+<span class="n">options</span><span class="o">.</span><span class="n">setOutputSize</span><span class="p">(</span><span class="n">QSize</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span> <span class="c1">#6</span>
+
+
+<span class="n">points</span><span class="o">=</span><span class="n">player</span><span class="o">.</span><span class="n">getFeatures</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+    <span class="n">pt</span><span class="o">=</span><span class="n">point</span><span class="o">.</span><span class="n">geometry</span><span class="p">()</span><span class="o">.</span><span class="n">asPoint</span><span class="p">()</span> <span class="c1">#71</span>
+    <span class="n">ext</span><span class="o">=</span><span class="n">QgsRectangle</span><span class="p">(</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">xs</span><span class="p">,</span><span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">ys</span><span class="p">,</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">xs</span><span class="p">,</span><span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">ys</span><span class="p">)</span>  <span class="c1">#72</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">setExtent</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span> <span class="c1">#3</span>
+    <span class="n">render</span> <span class="o">=</span> <span class="n">QgsMapRendererSequentialJob</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="c1">#74</span>
+    <span class="n">render</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="c1"># opcja z finished #75</span>
+    <span class="n">render</span><span class="o">.</span><span class="n">waitForFinished</span><span class="p">()</span> <span class="c1">#76</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="nb">type</span><span class="p">)</span> <span class="c1">#77</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">render</span><span class="o">.</span><span class="n">renderedImage</span><span class="p">()</span> <span class="c1">#78</span>
+    <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="c1">#79</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Analizy geoprzestrzenne w Qgis</a><ul>
+<li><a class="reference internal" href="#losowe-punkty-wzdluz-linii">Losowe punkty wzdłuż linii</a></li>
+<li><a class="reference internal" href="#linie-laczace-punkty-z-dwoch-warstw">Linie łączące punkty z dwóch warstw</a></li>
+<li><a class="reference internal" href="#utworzenie-poligonu-z-istniejacych-punktow">Utworzenie poligonu z istniejących punktów</a></li>
+<li><a class="reference internal" href="#probkowanie-rastra">Próbkowanie rastra</a></li>
+<li><a class="reference internal" href="#tworzenie-map">Tworzenie map</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="qgis1.html"
+                        title="poprzedni rozdział">Podstawy przetwarzania danych w QGIS</a></p>
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis4.html"
+                        title="następny rozdział">Samodzielnie budowany plugin - wersja minimum</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis2.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis4.html" title="Samodzielnie budowany plugin - wersja minimum"
+             >dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis1.html" title="Podstawy przetwarzania danych w QGIS"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,350 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Samodzielnie budowany plugin - wersja minimum &#8212; qgis_plugin 01. - dokumentacja</title>
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/translations.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Szukaj" href="search.html" />
+    <link rel="next" title="Framework pyQt - budowanie interace cz.1" href="qgis5a.html" />
+    <link rel="prev" title="Analizy geoprzestrzenne w Qgis" href="qgis2.html" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Neuton&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nobile:regular,italic,bold,bolditalic&amp;subset=latin" type="text/css" media="screen" charset="utf-8" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+  </head><body>
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             accesskey="I">indeks</a></li>
+        <li class="right" >
+          <a href="qgis5a.html" title="Framework pyQt - budowanie interace cz.1"
+             accesskey="N">dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             accesskey="P">wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="samodzielnie-budowany-plugin-wersja-minimum">
+<h1>Samodzielnie budowany plugin - wersja minimum<a class="headerlink" href="#samodzielnie-budowany-plugin-wersja-minimum" title="Stały odnośnik do tego nagłówka">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="struktura-plikow-wtyczki">
+<h2>Struktura plików wtyczki<a class="headerlink" href="#struktura-plikow-wtyczki" title="Stały odnośnik do tego nagłówka">¶</a></h2>
+<div class="section" id="katalog-wtyczki">
+<h3>Katalog wtyczki<a class="headerlink" href="#katalog-wtyczki" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Proces tworzenia pluginu rozpoczyna się od utworzenia katalogu, w którym znajdują się wtyczki. W zależności od systemu, katalog ten należy utworzyć w:</p>
+<dl class="docutils">
+<dt><strong>windows</strong></dt>
+<dd>C:UsersUSERAppDataRoamingQGISQGIS3profilesdefaultpythonplugins</dd>
+<dt><strong>Linux</strong></dt>
+<dd>/home/USER/.local/share/QGIS/QGIS3/profiles/default/python/plugins</dd>
+</dl>
+<p>Katalog może mieć dowolną nazwę, ale warto aby kojarzyła się ona z budowaną wtyczką. katalog zawierający <em>custom plugin</em> nazywa się <em>custom</em>. W celu ułatwienia sobie pracy, warto utworzyć skrót (windows) lub link symboliczny (linux) to katalogu z wtyczką w miejscu znacznie bardziej dostępnym niż ścieżka dostępu. W katalogu należy utworzyć kilka niezbędnych plików. Te pliki to:</p>
+<ul class="simple">
+<li><strong>__init__.py</strong> - plik inicjujący, nie wymaga zmian</li>
+<li><strong>plugin.py, form.py</strong> - właściwy kod pluginu, min. jeden plik</li>
+<li><strong>metadata.txt</strong> - metadane na temat pluginu</li>
+<li><strong>resources.py</strong> - zawiera elementy niezbędne do zbudowania interface</li>
+<li><strong>icon.png, resource.qrc</strong> - ikona i plik do wykonania zasobów do wyświetlania w interface</li>
+</ul>
+</div>
+<div class="section" id="plik-init-py">
+<h3>Plik __init__.py<a class="headerlink" href="#plik-init-py" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Zawartość tego pliku zawiera jednie definicję jednej funkcji classFactory, przyjmującej jako argument iface - tj interface programistyczny QGIS. Funkcja wykonuje jedynie dwie czynności:</p>
+<ol class="arabic simple">
+<li>Importuje z pliku – w tym wypadku nazwany custom klasę <strong>TestPlugin</strong> a następnie;</li>
+<li>zwraca obiekt utworzony na bazie tej klasy, który jako argumenty przyjmuje odwołanie do interface QGIS.</li>
+</ol>
+<p>W trakcie budowania własnego pluginu custom zastępujemy nazwą pliku zawierający kod pluginu a klasę TestPlugin klasą zawartą w tym pliku.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="k">def</span> <span class="nf">classFactory</span><span class="p">(</span><span class="n">iface</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">.custom</span> <span class="k">import</span> <span class="n">TestPlugin</span>
+    <span class="k">return</span> <span class="n">TestPlugin</span><span class="p">(</span><span class="n">iface</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Informacja</p>
+<p class="last">Należy również zwrócić uwagę, że nazwa pliku z którego importujemy klasę musi być poprzedzona kropką (<cite>.</cite>). Kropka oznacza, że importujemy z tego samego katalogu, w którym znajduje się wywołujący plik.</p>
+</div>
+<p>W tym przykładzie (co jest ogólnym zaleceniem) rozdzielimy logikę pluginu na dwie części: część dotyczącą interface (plik <em>form.py</em>) która nie zawiera odwołań do API QGIS oraz część zawierającą właściwy kod (plik <em>custom.py</em>), który będzie się odwoływał do formy zawartej w tym pliku. Takie rozwiązanie jest wygodniejsze z punktu widzenia zasad programowania, ale też jest możliwe aby cały kod umieścić w jednym pliku.</p>
+</div>
+<div class="section" id="plik-form-py">
+<h3>Plik form.py<a class="headerlink" href="#plik-form-py" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Plik ten zawiera kod niezbędny do zbudowania formatki. Podstawy tworzenia formatek zostały omówione w poprzedniej części. Zaproponowana formatka to klasa o nazwie <code class="xref py py-class docutils literal notranslate"><span class="pre">message</span></code>, dziedziczy po klasie <code class="xref py py-class docutils literal notranslate"><span class="pre">QDialog</span></code> będącym standardowym widgetem frameworka Qt. Klasa  zawiera minimum elementów:</p>
+<ol class="arabic simple">
+<li>Formatkę (<strong>QDialog</strong>)</li>
+<li>polecenia ustawiające rozmiar i tytuł formatki</li>
+<li>Etykietę (<strong>infoLabel</strong>) zawierające napis: „Tak, to jest plugin!”</li>
+<li>Standardowy ButtonBox</li>
+<li><dl class="first docutils">
+<dt>Pionowy layout…</dt>
+<dd><ol class="first last upperalpha">
+<li>…do którego wstawiono etykietę</li>
+<li>…wypełniacz (Strech)</li>
+<li>…oraz buttonBox</li>
+</ol>
+</dd>
+</dl>
+</li>
+<li>W ostatnim kroku ustawiono Layout</li>
+<li>I dodano standardowe sygnały</li>
+</ol>
+<p>Zawartość pliku wygląda następująco:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtGui</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtWidgets</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="k">class</span> <span class="nc">message</span><span class="p">(</span><span class="n">QDialog</span><span class="p">):</span> <span class="c1">#1</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>  <span class="c1">#2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setWindowTitle</span><span class="p">(</span><span class="s2">&quot;Plugin?&quot;</span><span class="p">)</span> <span class="c1">#2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infoLabel</span> <span class="o">=</span> <span class="n">QLabel</span><span class="p">(</span><span class="s2">&quot;Tak, to jest plugin!&quot;</span><span class="p">)</span>  <span class="c1">#3</span>
+        <span class="n">buttonBox</span> <span class="o">=</span> <span class="n">QDialogButtonBox</span><span class="p">(</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Cancel</span><span class="o">|</span><span class="n">QDialogButtonBox</span><span class="o">.</span><span class="n">Ok</span><span class="p">)</span> <span class="c1">#4</span>
+        <span class="n">mainLayout</span><span class="o">=</span><span class="n">QVBoxLayout</span><span class="p">()</span> <span class="c1">#5</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infoLabel</span><span class="p">)</span> <span class="c1">#5A</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addStretch</span><span class="p">()</span>  <span class="c1">#5B</span>
+        <span class="n">mainLayout</span><span class="o">.</span><span class="n">addWidget</span><span class="p">(</span><span class="n">buttonBox</span><span class="p">)</span> <span class="c1">#5C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setLayout</span><span class="p">(</span><span class="n">mainLayout</span><span class="p">)</span> <span class="c1">#6</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">accepted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accept</span><span class="p">)</span> <span class="c1">#7</span>
+        <span class="n">buttonBox</span><span class="o">.</span><span class="n">rejected</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reject</span><span class="p">)</span> <span class="c1">#7</span>
+</pre></div>
+</div>
+<p>Tak zaprojektowana formatka powinna wyglądać następująco:</p>
+<img alt="_images/p01.png" class="align-center" src="_images/p01.png" />
+<p>Po zapisaniu pliku można go zaimportować do głównego pliku pluginu, którym w naszym wypadku jest plik custom.py</p>
+</div>
+<div class="section" id="plik-custom-py">
+<h3>Plik custom.py<a class="headerlink" href="#plik-custom-py" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Nazwa tego pliku może być dowolna. Zasadniczo, w ramach konwencji przyjmuje się że powinien się tak nazwać jak katalog zawierający plugin.</p>
+<p>Główny plik pluginu musi się rozpoczynać od importu niezbędnych bibliotek. Absolutnym minimum jest jądro Qt i Gui oraz jądro qgis. Jądro Qt warto importować poprzez QGIS, co gwarantuje nam że zaimportuje się odpowiednia wersja obsługiwana przez QGIS (istotne w systemie linux). Następnie importujemy funkcje i klasy z dwóch plików: resources oraz klasy (tu: message) z pliku form (tu: form). należy pamiętać o poprzedzeniu importowanych elementów kropką.</p>
+<p>Zawartość pliku przedstawia się następująco:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qgis.core</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">qgis.PyQt.QtGui</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">qgis.PyQt.QtWidgets</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="c1"># initialize Qt resources from file resources.py</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">resources</span>
+<span class="kn">from</span> <span class="nn">.form</span> <span class="k">import</span> <span class="n">message</span>
+</pre></div>
+</div>
+<p>Główna klasa pliku o nazwie <code class="xref py py-class docutils literal notranslate"><span class="pre">TestPlugin</span></code> zawiera cztery główne funkcje:</p>
+<ol class="arabic simple">
+<li><dl class="first docutils">
+<dt><strong>__init__</strong> - inicjująca klasę</dt>
+<dd><ol class="first last upperalpha">
+<li>Przypisanie iface do klasy, tak aby był dostępny dla wszystkich funkcji</li>
+<li>utworzenie obiektu .msg na podstawie klasy <code class="xref py py-class docutils literal notranslate"><span class="pre">message</span></code></li>
+</ol>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><strong>initGui</strong> - zaiwera elementy, które pozwolą umieścić nowo utworzony plugin w menu oraz na pasku narzędziowym. Poszczególne polecenia funcji określają:</dt>
+<dd><ol class="first last upperalpha">
+<li>położenie ikony:”:/plugins/custom/icon.png”</li>
+<li>Nazwę pluginu: „Custom plugin”</li>
+<li>Tooltip: „It will do something, eventually”</li>
+<li>Menu do którego zostanie przypisany plugin („Home made”)</li>
+</ol>
+</dd>
+</dl>
+</li>
+<li><strong>Unload</strong> - jest to funkcja, która usuwa wpisy przy wyłączeniu QGIS - należy wskazać menu, z którego usuwamy wpis</li>
+<li><strong>Run</strong> - Funkcja uruchamiająca własne funkcje. Najważniejszą z nich jest funkcja show oraz wykonanie zawartości formatki, zmienna <em>result</em> przechowuje wartość True jeżeli udało się wykonać formatkę.</li>
+</ol>
+<p>Zawartość klasy TestPlugin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">TestPlugin</span><span class="p">:</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iface</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span> <span class="o">=</span> <span class="n">iface</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="o">=</span><span class="n">message</span><span class="p">()</span>
+
+  <span class="k">def</span> <span class="nf">initGui</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">QAction</span><span class="p">(</span><span class="n">QIcon</span><span class="p">(</span><span class="s2">&quot;:/plugins/custom/icon.png&quot;</span><span class="p">),</span> <span class="s2">&quot;Custom plugin&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">mainWindow</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">setStatusTip</span><span class="p">(</span><span class="s2">&quot;It will do something, eventually&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="o">.</span><span class="n">triggered</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">)</span>
+
+    <span class="c1"># add toolbar button and menu item</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">addToolBarIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">addPluginToMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Home made&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">unload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">removePluginMenu</span><span class="p">(</span><span class="s2">&quot;&amp;Home made&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iface</span><span class="o">.</span><span class="n">removeToolBarIcon</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Po wykonaniu formatki uruchamia się kolejne funkcje wykonujące główne zadanie pluginu (omawiane w innej sekcji).</p>
+</div>
+<div class="section" id="ikona-oraz-plik-resources-qrc">
+<h3>ikona oraz plik resources.qrc<a class="headerlink" href="#ikona-oraz-plik-resources-qrc" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>W celu przygotowania interface należy przygotować plik resoruces.qrc zawierający jeden slot. W tym slocie modyfikujemy jedynie ścieżkę dostępu w naszym przypadku /plugins/custom zmieniamy na własną nazwę katalogu:</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;RCC&gt;</span>
+    <span class="nt">&lt;qresource</span> <span class="na">prefix=</span><span class="s">&quot;/plugins/custom&quot;</span> <span class="nt">&gt;</span>
+        <span class="nt">&lt;file&gt;</span>icon.png<span class="nt">&lt;/file&gt;</span>
+    <span class="nt">&lt;/qresource&gt;</span>
+<span class="nt">&lt;/RCC&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="plik-metadata-txt">
+<h3>Plik metadata.txt<a class="headerlink" href="#plik-metadata-txt" title="Stały odnośnik do tego nagłówka">¶</a></h3>
+<p>Plik składa się z dwóch części: obowiązkowej, niezbędnej do tego aby zarejestrować plugin w QGIS druga część jest nieobowiązkowa i pozwala na dodatkowe informacje, które nie są niezbędne do uruchomienia pluginu.</p>
+<p>W pliku możemy stosować komentarze, które rozpoczynają się od średnika „;” opisy powinny być po angielsku. Więcej na: [<a class="reference external" href="http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata">http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata</a>]</p>
+<p><strong>cześć obowiązkowa:</strong></p>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span>    [general]
+    name=Custom plugin
+    email=me@mail.com
+    author=Just Ja Sam
+    qgisMinimumVersion=2.0
+
+Opis pluginów
+
+    description=Opis samodzielnie wykonanego pluginu
+        Można stosować wiele linii:
+        linie, które należą do tego samego pola
+        muszą być oddzielone spacjami
+        formatowanie HTML nie jest dopuszczalne
+    about=Szczegółowy opis pluginu
+        można stosować wiele linii (spacje) HTML - nie
+
+Informacja o wersji i repozytorium
+
+    version=version0.666
+    tracker=http://bugs.server.org
+    repository=http://www.server.org/repo
+</pre></div>
+</div>
+<p><strong>cześć opcjonalna</strong></p>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span>Kategoria tematyczna i historia rozwoju
+
+    category=Vector
+    changelog=The changelog lists the plugin versions
+        and their changes as in the example below:
+        0.666 - Great version
+        0.600 - All features implemented
+        0.001 - First testing release
+
+Tags (tagi lub słowa kluczowe): powinny być rozdzielane przecinkami, po angielsku
+
+    tags=wkt,vector,training```
+
+Strona Domowa:
+
+    homepage=http://www.server.org icon=icon.png
+
+experimental flag (eksperymentalny): Stosuje się do aktualnie ładowanej wersji pluginu:
+
+    experimental=True
+
+deprecated flag (niezalecany) - stosuje się do całego pluginu
+
+    deprecated=False
+
+maksymalna wersja: jeżeli puste to będzie automatycznie qgisMinimumVersion  + .99
+
+qgisMaximumVersion=3.0 ```
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Spis treści</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Samodzielnie budowany plugin - wersja minimum</a><ul>
+<li><a class="reference internal" href="#struktura-plikow-wtyczki">Struktura plików wtyczki</a><ul>
+<li><a class="reference internal" href="#katalog-wtyczki">Katalog wtyczki</a></li>
+<li><a class="reference internal" href="#plik-init-py">Plik __init__.py</a></li>
+<li><a class="reference internal" href="#plik-form-py">Plik form.py</a></li>
+<li><a class="reference internal" href="#plik-custom-py">Plik custom.py</a></li>
+<li><a class="reference internal" href="#ikona-oraz-plik-resources-qrc">ikona oraz plik resources.qrc</a></li>
+<li><a class="reference internal" href="#plik-metadata-txt">Plik metadata.txt</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Poprzedni temat</h4>
+  <p class="topless"><a href="qgis2.html"
+                        title="poprzedni rozdział">Analizy geoprzestrzenne w Qgis</a></p>
+  <h4>Następny temat</h4>
+  <p class="topless"><a href="qgis5a.html"
+                        title="następny rozdział">Framework pyQt - budowanie interace cz.1</a></p>
+  <div role="note" aria-label="source link">
+    <h3>Ta strona</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/qgis4.rst.txt"
+            rel="nofollow">Pokaż źródło</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Szybkie wyszukiwanie</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Szukaj" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Nawigacja</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="Indeks ogólny"
+             >indeks</a></li>
+        <li class="right" >
+          <a href="qgis5a.html" title="Framework pyQt - budowanie interace cz.1"
+             >dalej</a> |</li>
+        <li class="right" >
+          <a href="qgis2.html" title="Analizy geoprzestrzenne w Qgis"
+             >wstecz</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qgis_plugin 01. - dokumentacja</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, JarekJ.
+      Utworzone przy pomocy <a href="http://sphinx-doc.org/">Sphinx</a>'a 1.7.6.
+    </div>
+  </body>
+</html>
